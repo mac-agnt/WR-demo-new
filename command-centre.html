@@ -658,35 +658,45 @@ const GOOGLE = {
 /* ============================ CONFIG ============================
    Reskin = change brand.accent (+ accentDark). Paste a scope of works = fill brand + NAV (+ PAGES). */
 const brand = {
-  company:"ACMR", mark:"A",
-  owner:"Demo", ownerSub:"ACMR",
+  company:"Wild Rover Tours", mark:"W",
+  owner:"Sydney", ownerSub:"Transport manager",
   accent:"#356859", accentDark:"#5FB89B", mode:"light"
 };
 
-/* Generic, rename-and-extend sections. First entry is the home assistant view. */
+/* Wild Rover Tours — seven primary sections. First entry is the home assistant view.
+   Icons that aren't in the base ICONS map (bus, ticket, megaphone, euro, gear) are
+   merged in by wr-demo.js before the sidebar renders, so they resolve fine. */
 const NAV = [
-  { id:"overview",   label:"Overview",   icon:"home"     },
+  { id:"overview",   label:"Home",       icon:"home"     },
+  { id:"fleet",      label:"Fleet",      icon:"bus"      },
   { id:"operations", label:"Operations", icon:"layers"   },
-  { id:"finance",    label:"Finance",    icon:"trending" },
-  { id:"team",       label:"Team",       icon:"users"    },
+  { id:"bookings",   label:"Bookings",   icon:"ticket"   },
+  { id:"customers",  label:"Customers",  icon:"users"    },
+  { id:"marketing",  label:"Marketing",  icon:"megaphone"},
+  { id:"finance",    label:"Finance",    icon:"euro"     },
+  { id:"settings",   label:"Settings",   icon:"gear"     },
 ];
 const navItem = id => NAV.find(i => i.id === id);
 
 const SUBTITLES = {
-  operations:"Day to day work, pipelines and status.",
-  finance:"Money in, money out and the headline numbers.",
-  team:"People, roles and activity."
+  fleet:"Vehicles, compliance, maintenance and where every coach is right now.",
+  operations:"Sydney GPT runs the day: roster, run sheet, manifests and driver hours.",
+  bookings:"One true seat count across every channel, pickups and confirmations.",
+  customers:"The whole customer base, reviews, enquiries and campaigns in one place.",
+  marketing:"Spend, return, live trends, content and the competition on one screen.",
+  finance:"Live P&L, margin per departure and the real cost of every channel.",
+  settings:"Everything Wild Rover runs on, connected in one place."
 };
 
 /* Previous AI chats for the history rail + the blurred chat picker.
    Each: { id, title, when }. Wire to real saved threads; empty array hides the rail. */
 const CHATS = [
-  { id:"c1", title:"Q2 reorder plan",             when:"Today",      blurb:"Working out stock levels and lead times for the next quarter." },
-  { id:"c2", title:"Invoice 4821 follow up",      when:"Today",      blurb:"Drafting a reminder to Kilcullen Restoration on the balance." },
-  { id:"c3", title:"Boyne Valley delivery route", when:"Yesterday",  blurb:"Planning the van run and load order for 14 lines." },
-  { id:"c4", title:"Stock count variance",        when:"Yesterday",  blurb:"Reconciling the count against the system figures." },
-  { id:"c5", title:"July team rota",              when:"2 days ago", blurb:"Building cover for the bank holiday week." },
-  { id:"c6", title:"Supplier price review",       when:"Last week",  blurb:"Comparing the new parts pricing across three suppliers." },
+  { id:"c1", title:"Who can cover Galway Thursday", when:"Today",      blurb:"Pádraig is on rest after the Belfast turnaround, so we looked at who is certified and free." },
+  { id:"c2", title:"Bus 7 running cost this year",  when:"Today",      blurb:"Pulled the lifetime ledger. The March gearbox is what pushed it over the fleet average." },
+  { id:"c3", title:"Cost of sales vs the 20% target",when:"Yesterday", blurb:"Walked through why OTA mix tipped us to 22 percent this month." },
+  { id:"c4", title:"Under-loaded departures",       when:"Yesterday",  blurb:"Found two coaches below break-even for Friday and looked at merging them." },
+  { id:"c5", title:"PSV renewal on 06-D",           when:"2 days ago", blurb:"Booked the test slot before the disc lapses in nineteen days." },
+  { id:"c6", title:"Giant's Causeway manifest",     when:"Last week",  blurb:"Rebuilt the per-coach manifest after the Viator batch came in late." },
 ];
 
 /* Command palette extras (optional, empty by default). */
@@ -695,13 +705,18 @@ const SHORTCUTS = [];   // [{ label, hint, run }]
 
 /* Home notifications, Apple push style. Each: { app:"gmail"|"drive"|"calendar" (logo tile) or any icon name,
    appName, title, body, time }. Empty array shows the empty state. */
+/* Unified activity feed. Every section posts into this one stream. Items can carry
+   `go` (jump to a section) or `ent` ("type:id" opens the entity panel); wr-demo.js
+   wires those clicks. Non-Google `app` values fall back to the named icon. */
 const NOTIFICATIONS = [
-  { app:"gmail",    appName:"Gmail",    title:"Payment received",    body:"Kilcullen Restoration paid invoice 4821 for €2,140.", time:"2m ago" },
-  { app:"calendar", appName:"Calendar", title:"Delivery at 09:40",   body:"Van 2 to Boyne Valley Heritage, 14 lines to load.",    time:"1h ago" },
-  { app:"drive",    appName:"Drive",    title:"Stock report shared", body:"Q2 reorder list added to the Operations folder.",      time:"3h ago" },
-  { app:"gmail",    appName:"Gmail",    title:"Quote request",       body:"Naas Auto Salvage asking on a 2.0 TDI gearbox.",       time:"5h ago" },
-  { app:"calendar", appName:"Calendar", title:"MOT due Friday",      body:"Courtesy car 06-D-4471 needs a retest slot.",         time:"Yesterday" },
-  { app:"drive",    appName:"Drive",    title:"Supplier invoice in", body:"March parts statement from Carlow Motor Factors.",     time:"Yesterday" },
+  { app:"gmail",    appName:"Gmail · Finance",      title:"Payment cleared",        body:"Viator settlement of €18,240 landed for last week's departures.", time:"4m ago",  go:"finance" },
+  { app:"spark",    appName:"Bookings",             title:"Seat truth updated",     body:"Cliffs of Moher & Galway is 49 of 53 across all channels.",       time:"22m ago", ent:"departure:DEP-CMG" },
+  { app:"bell",     appName:"Compliance",           title:"PSV disc expiring",      body:"Bus 9 (06-D-19874) road passenger licence lapses in 19 days.",    time:"1h ago",  ent:"vehicle:V09" },
+  { app:"wrench",   appName:"Maintenance",          title:"Service due soon",       body:"Bus 4 is 9,200 km from its next service. Flagged early.",         time:"2h ago",  ent:"vehicle:V04" },
+  { app:"star",     appName:"Customers · Reviews",  title:"New 5-star review",      body:"“Mícheál made the whole day” on TripAdvisor for Galway.", time:"3h ago",  go:"customers" },
+  { app:"trending", appName:"Marketing",            title:"Trend spotted",          body:"Wild Atlantic Way reels up 38% on TikTok this week.",             time:"5h ago",  go:"marketing" },
+  { app:"clock",    appName:"Driver hours",         title:"Tachograph red-line",    body:"Pádraig Nolan is at 53h40 of the 56h fortnight limit.",           time:"Today",   ent:"driver:D01" },
+  { app:"euro",     appName:"Finance",              title:"Low-load departure",     body:"Kilkenny & Glendalough Friday is at 19 of 50, below break-even.", time:"Today",   ent:"departure:DEP-KWG" },
 ];
 
 /* ============================================================================
@@ -1201,6 +1216,9 @@ palAskInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefau
   renderMain();
 })();
 </script>
+<!-- Wild Rover Tours demo: mock data, all section pages, and the shared spine
+     (Sydney GPT command bar, unified feed, alert centre, entity cross-linking). -->
+<script src="wr-demo.js"></script>
 <!-- account menu + settings modal (self-contained add-on) -->
 <script src="settings-addon.js"></script>
 </body>
