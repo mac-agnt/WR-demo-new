@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Command centre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet" />
+
+<!--
+  ACMR COMMAND CENTRE  ·  reusable, config-driven dashboard shell. SF only. Monochrome + one rationed accent. No fake data.
+
+  PASTE A SCOPE OF WORKS  →  set `brand` (company, owner, accent) and fill the `NAV` config with one entry per module,
+                             then build each module under `PAGES` (or leave it to auto-scaffold the empty shell).
+  ADD A MODULE            →  add one { id, label, icon } to `NAV`  (auto sidebar + palette + empty scaffold).
+                             Optional: PAGES["id"] = () => `...`  composing KpiCard / StatCard / Panel / Table / BriefingCard.
+  RESKIN FOR A CLIENT     →  change brand.accent and brand.accentDark. One line. Nothing else carries colour.
+
+  Design values: structure, type and layout follow the build brief. Micro-values not pinned by a tokens doc use the
+  premium monochrome defaults below (canvas, surfaces, hairlines, shadows, motion). Swap if a DESIGN.md supersedes them.
+-->
+
+<style>
+/* ============================ DESIGN TOKENS ============================ */
+:root,[data-theme="light"]{
+  /* monochrome foundation (crisp warm near-white, not beige) */
+  --bg:#F7F6F3;
+  --surface:#FFFFFF;
+  --surface-2:#FBFAF8;
+  --hairline:rgba(20,19,15,0.07);
+  --hairline-2:rgba(20,19,15,0.12);
+
+  --ink:#1A1A17;
+  --ink-2:#6B6A62;
+  --ink-3:#9C9A90;
+
+  /* the single rationed accent (1 to 2 uses per screen) */
+  --accent:#356859;                 /* RESKIN LEVER */
+  --accent-soft:rgba(53,104,89,0.10);
+
+  --shadow-sm:0 1px 2px rgba(20,19,15,0.05);
+  --shadow:0 1px 2px rgba(20,19,15,0.04), 0 8px 20px rgba(20,19,15,0.06);
+  --shadow-lift:0 1px 2px rgba(20,19,15,0.05), 0 14px 30px rgba(20,19,15,0.10);
+
+  --glass:rgba(255,255,255,0.80);   /* command palette ONLY */
+
+  --radius:16px;
+  --radius-ctrl:11px;
+  --rail-w:64px;                    /* slim icon rail */
+  --rail-x:248px;                   /* expanded on hover */
+  --topbar-h:58px;
+  --page-max:1200px;                /* standard centred column */
+  --home-max:720px;                 /* assistant column */
+
+  /* motion: gentle and quick, never bouncy */
+  --ease:cubic-bezier(.22,1,.36,1);
+  --dur:.22s;
+  --dur-fast:.16s;
+  --stagger:55ms;
+
+  --font-sans:-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
+  --font-serif:'Newsreader', ui-serif, Georgia, "Times New Roman", serif;   /* greeting only */
+  --note-bg:rgba(255,255,255,0.72);   /* Apple-style frosted notification */
+}
+[data-theme="dark"]{
+  /* near-black canvas, elevation from borders + shadows */
+  --bg:#121211;
+  --surface:#1A1A18;
+  --surface-2:#1F1E1B;
+  --hairline:rgba(255,255,255,0.08);
+  --hairline-2:rgba(255,255,255,0.14);
+
+  --ink:#F2F0EA;
+  --ink-2:#A8A599;
+  --ink-3:#74726A;
+
+  --accent:#5FB89B;                 /* brighter accent in dark */
+  --accent-soft:rgba(95,184,155,0.14);
+
+  --shadow-sm:0 1px 2px rgba(0,0,0,0.35);
+  --shadow:0 1px 2px rgba(0,0,0,0.32), 0 8px 22px rgba(0,0,0,0.42);
+  --shadow-lift:0 1px 2px rgba(0,0,0,0.35), 0 16px 34px rgba(0,0,0,0.52);
+
+  --glass:rgba(28,27,24,0.82);
+  --note-bg:rgba(40,38,33,0.58);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{
+  font-family:var(--font-sans);
+  font-size:14px;color:var(--ink);background:var(--bg);
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;
+}
+button,input{font-family:inherit}
+button{cursor:pointer;color:inherit;border:none;background:none;padding:0}
+textarea{font-family:inherit}
+::selection{background:var(--accent-soft);color:var(--ink)}
+*{scrollbar-width:thin;scrollbar-color:var(--hairline-2) transparent}
+*::-webkit-scrollbar{width:9px;height:9px}
+*::-webkit-scrollbar-thumb{background:var(--hairline-2);border-radius:99px;border:2px solid transparent;background-clip:padding-box}
+.ic{display:block;flex:none}
+.eyebrow{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+.muted{color:var(--ink-3)}
+
+/* ============================ SIDEBAR (slim rail, hover to expand) ============================ */
+.side{
+  position:fixed;top:0;left:0;bottom:0;z-index:40;
+  width:var(--rail-w);
+  display:flex;flex-direction:column;
+  padding:14px 8px;
+  background:var(--bg);
+  border-right:1px solid var(--hairline);
+  overflow:hidden;
+  transition:width var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+@media (hover:hover){ .side:hover{width:var(--rail-x);box-shadow:var(--shadow-lift)} }
+
+.s-ic{width:48px;flex:none;display:grid;place-items:center}
+.s-lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+.side:hover .s-lbl{opacity:1}
+
+/* brand mark (monochrome) */
+.brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-bottom:16px}
+/* scale instead of height — GPU-composited, no layout reflow, no jitter */
+.brand-logo{height:46px;width:auto;display:block;flex:none;transform:scale(0.478);transform-origin:center center;transition:transform .32s cubic-bezier(.34,1.2,.64,1)}
+.side:hover .brand-logo{transform:scale(1)}
+[data-theme="light"] .brand-logo{filter:invert(1)}
+[data-theme="dark"]  .brand-logo{filter:none}
+.brand-sub{font-size:11.5px;color:var(--ink-3);letter-spacing:.01em;white-space:nowrap;opacity:0;transition:opacity .22s var(--ease) .14s}
+.side:hover .brand-sub{opacity:1;transition:opacity .22s var(--ease) .18s}
+
+/* nav */
+.nav{flex:1;overflow-y:auto;overflow-x:hidden;margin:4px 0 0;display:flex;flex-direction:column;gap:2px}
+.navitem{
+  position:relative;display:flex;align-items:center;width:100%;height:42px;
+  border-radius:var(--radius-ctrl);color:var(--ink-2);
+  font-size:13.5px;font-weight:450;text-align:left;
+  transition:color var(--dur) var(--ease), background-color var(--dur) var(--ease);
+}
+.navitem .s-ic{color:var(--ink-3);transition:color var(--dur) var(--ease)}
+.navitem:hover{color:var(--ink);background:var(--surface-2)}
+.navitem:hover .s-ic{color:var(--ink-2)}
+/* active state cross-fades in: accent indicator + accent icon, monochrome surface */
+.navitem .ind{position:absolute;left:4px;top:50%;width:3px;height:18px;border-radius:99px;background:var(--accent);transform:translateY(-50%) scaleY(.4);opacity:0;transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease)}
+.navitem.active{color:var(--ink);background:var(--surface);box-shadow:var(--shadow-sm);font-weight:550}
+.navitem.active .s-ic{color:var(--accent)}
+.navitem.active .ind{opacity:1;transform:translateY(-50%) scaleY(1)}
+
+/* owner profile pill (pinned bottom, contained) */
+.side-foot{margin-top:8px;padding-top:12px;border-top:1px solid var(--hairline)}
+.profile{
+  display:flex;align-items:center;width:100%;height:52px;padding:0;
+  border:1px solid var(--hairline);border-radius:13px;background:var(--surface);
+  box-shadow:var(--shadow-sm);text-align:left;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.profile .s-ic{width:46px}      /* rail inner (48px) minus the pill's 1px borders -> avatar centres on the rail like the nav icons */
+.profile:hover{border-color:var(--hairline-2);box-shadow:var(--shadow)}
+@media (prefers-reduced-motion:no-preference){ .profile:hover{transform:translateY(-1px)} }
+.avatar{
+  width:32px;height:32px;border-radius:99px;flex:none;display:grid;place-items:center;
+  font-size:11.5px;font-weight:600;color:var(--ink-2);letter-spacing:.02em;
+  background:var(--surface-2);border:1px solid var(--hairline);
+}
+.profile .who{display:flex;flex-direction:column;min-width:0;flex:1;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+.side:hover .profile .who{opacity:1}
+.profile .who b{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.profile .who span{font-size:11px;color:var(--ink-3);white-space:nowrap}
+.profile .chev{color:var(--ink-3);margin-right:12px;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+.side:hover .profile .chev{opacity:1}
+
+/* ===================== PREVIOUS CHATS (blurred picker, detached glass buttons) ===================== */
+.chat-back{position:fixed;inset:0;z-index:80;display:none;justify-content:flex-end;background:color-mix(in srgb, var(--bg) 24%, transparent)}
+.chat-back.open{display:flex}
+body.chat-open .shell,body.chat-open .side{filter:blur(8px)}
+.shell,.side{transition:filter var(--dur) var(--ease)}
+.chat-wrap{width:340px;max-width:86vw;height:100%;display:flex;flex-direction:column;gap:14px;padding:16px 20px 28px;overflow-y:auto;
+  animation:chatPanel .34s var(--ease)}
+@keyframes chatPanel{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.chat-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 2px}
+.chat-wrap h3{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin:0}
+.chat-close{width:30px;height:30px;flex:none;display:grid;place-items:center;border-radius:9px;color:var(--ink-3);background:transparent;border:0;transition:color var(--dur) var(--ease), background-color var(--dur) var(--ease)}
+.chat-close:hover{color:var(--ink);background:var(--surface-2)}
+.chat-grid{display:flex;flex-direction:column;gap:12px}
+/* detached liquid-glass button: lens lives in ::before (see glass block), so text never ghosts */
+.chat-pill{
+  position:relative;isolation:isolate;display:flex;flex-direction:column;gap:5px;
+  text-align:left;padding:15px 17px;border-radius:16px;color:var(--ink);
+  border:0;background:transparent;
+  opacity:0;transform:translateY(-12px);
+  animation:chatDrop .42s var(--ease) forwards;animation-delay:var(--cd,0ms);
+}
+.chat-pill::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background-color:var(--glass-btn);
+  -webkit-backdrop-filter:blur(10px) saturate(150%);
+  backdrop-filter:blur(10px) url(#liquid-glass) saturate(150%);
+  box-shadow:var(--glass-stack);
+}
+.chat-pill b{font-weight:550;font-size:14px}
+.chat-pill .cp-when{font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3)}
+.chat-pill .cp-blurb{font-size:12.5px;line-height:1.45;color:var(--ink-2)}
+.chat-pill{transition:transform var(--dur) var(--ease)}
+@media (prefers-reduced-motion:no-preference){ .chat-pill:hover{transform:translateY(-2px)} }
+@media (prefers-reduced-motion:reduce){ .chat-pill{animation:none;opacity:1;transform:none} }
+@keyframes chatDrop{to{opacity:1;transform:none}}
+
+/* ============================ SHELL + TOP BAR ============================ */
+.shell{margin-left:var(--rail-w);min-height:100vh;display:flex;flex-direction:column}
+
+.topbar{
+  position:sticky;top:0;z-index:30;height:var(--topbar-h);flex:none;
+  background:transparent;                      /* navbar has no background, only the search pill does */
+  display:flex;align-items:center;
+}
+.topbar-in{position:relative;width:100%;max-width:var(--page-max);margin:0 auto;padding:0 32px;display:flex;align-items:center;justify-content:center}
+.search{
+  display:flex;align-items:center;gap:10px;height:38px;width:220px;padding:0 10px 0 14px;
+  border:1px solid var(--hairline);background:var(--surface);box-shadow:var(--shadow-sm);
+  color:var(--ink-3);font-size:13px;text-align:left;
+  will-change:width;
+  transition:width var(--dur) var(--ease), border-color var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease), opacity var(--dur) var(--ease);
+}
+.search:hover{width:380px;border-color:var(--hairline-2);color:var(--ink-2)}
+html.theme-switching *,html.theme-switching *::before,html.theme-switching *::after{transition:none!important}
+body.cmd-open .search{opacity:0;pointer-events:none}
+.search .ic{color:var(--ink-3)}
+.search .lbl{flex:1}
+.search kbd{font-size:10.5px;font-weight:600;color:var(--ink-3);padding:3px 6px;border-radius:6px;background:var(--surface-2);border:1px solid var(--hairline)}
+.topbar-sp{display:none}
+.iconbtn{
+  position:absolute;right:32px;top:50%;margin-top:-17px;
+  width:34px;height:34px;display:grid;place-items:center;color:var(--ink-2);
+  border:1px solid transparent;transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+.iconbtn:hover{background:var(--surface-2);color:var(--ink)}
+.chats-trigger{position:fixed!important;top:10px;right:24px;margin-top:0;z-index:60;width:38px!important;height:38px!important;border-radius:13px!important;color:var(--ink)!important}   /* square glass button, same height as the search pill */
+.chats-trigger svg{width:20px;height:20px;stroke-width:2.1}
+
+.view{flex:1;width:100%}
+.page{max-width:var(--page-max);margin:0 auto;padding:34px 32px 88px}
+.page-head{margin-bottom:26px}
+.page-title{font-weight:600;font-size:clamp(1.6rem,2.6vw,2rem);letter-spacing:-.02em;line-height:1.08;margin:6px 0 0;color:var(--ink)}
+.page-sub{color:var(--ink-2);font-size:14.5px;margin-top:10px;max-width:62ch}
+
+/* ============================ LAYOUT GRIDS ============================ */
+.stack{display:flex;flex-direction:column;gap:20px}
+.grid{display:grid;gap:20px}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+
+/* ============================ SHARED COMPONENTS (render empty by default) ============================ */
+.card{background:var(--surface);border:1px solid var(--hairline);border-radius:var(--radius);box-shadow:var(--shadow);padding:24px}
+.lift{transition:box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease)}
+@media (prefers-reduced-motion:no-preference){
+  .lift{transition:transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease), border-color var(--dur) var(--ease)}
+  .lift:hover{transform:translateY(-1px)}                 /* 1px hover lift */
+}
+.lift:hover{box-shadow:var(--shadow-lift);border-color:var(--hairline-2)}
+.card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}
+.card-h h3{margin:4px 0 0;font-size:15px;font-weight:600;letter-spacing:-.01em}
+
+.ghost{
+  display:inline-flex;align-items:center;gap:7px;padding:8px 13px;border-radius:10px;font-size:12.5px;font-weight:500;
+  color:var(--ink-2);border:1px solid var(--hairline);background:transparent;
+  transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease), border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.ghost .ic{color:var(--ink-3)}
+.ghost:hover{background:var(--surface-2);color:var(--ink);border-color:var(--hairline-2)}
+@media (prefers-reduced-motion:no-preference){ .ghost:active{transform:scale(.97)} }
+
+/* KPI */
+.kpi{display:flex;flex-direction:column;min-height:150px}
+.kpi-val{font-size:clamp(1.9rem,3.2vw,2.4rem);font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1;margin:16px 0 0;color:var(--ink)}
+.kpi-val.empty{color:var(--ink-3)}
+.kpi-sub{color:var(--ink-2);font-size:13px;margin-top:10px}
+.kpi-foot{margin-top:auto;padding-top:16px}
+.delta{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:600;color:var(--accent)}
+
+/* Stat */
+.stat{display:flex;flex-direction:column;min-height:116px;padding:20px}
+.stat-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.stat-top .ic{color:var(--ink-3)}
+.stat-val{font-size:1.7rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;margin:14px 0 0}
+.stat-val.empty{color:var(--ink-3)}
+.stat-sub{color:var(--ink-2);font-size:12.5px;margin-top:auto;padding-top:12px}
+
+/* Briefing */
+.brief .b-top{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.brief .b-top .ic{color:var(--accent)}
+.brief p{margin:0;font-size:15px;line-height:1.6;color:var(--ink);max-width:88ch}
+.brief p.empty{color:var(--ink-3)}
+.brief .b-actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:16px}
+
+/* Panel */
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--hairline)}
+.row:last-child{border-bottom:none}
+.row-ava{width:32px;height:32px;flex:none;border-radius:9px;display:grid;place-items:center;font-size:11.5px;font-weight:600;color:var(--ink-2);background:var(--surface-2);border:1px solid var(--hairline)}
+.row-main{flex:1;min-width:0}
+.row-main b{display:block;font-size:13.5px;font-weight:550;letter-spacing:-.01em}
+.row-main span{font-size:12px;color:var(--ink-3)}
+.empty-rows{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;padding:30px 12px;color:var(--ink-3)}
+.empty-rows .ic{color:var(--ink-3)}
+.empty-rows b{font-size:13px;font-weight:600;color:var(--ink-2)}
+.empty-rows span{font-size:12.5px}
+
+/* Table */
+.tbl-wrap{overflow:auto;border-radius:12px;border:1px solid var(--hairline)}
+table.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl thead th{text-align:left;font-weight:600;color:var(--ink-3);font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:11px 16px;border-bottom:1px solid var(--hairline);background:var(--surface-2)}
+.tbl tbody td{padding:13px 16px;border-bottom:1px solid var(--hairline);color:var(--ink-2)}
+.tbl tbody tr:last-child td{border-bottom:none}
+.tbl-empty td{padding:30px 16px;text-align:center;color:var(--ink-3)}
+
+/* Scaffold empty state (used inside auto pages) */
+.scaffold-note{display:flex;align-items:center;gap:12px;padding:16px 18px;border:1px dashed var(--hairline-2);border-radius:13px;background:var(--surface-2);color:var(--ink-2);font-size:13px}
+.scaffold-note .badge{width:34px;height:34px;flex:none;border-radius:9px;display:grid;place-items:center;color:var(--accent);background:var(--accent-soft)}
+
+/* ============================ HOME (greeting -> ChatGPT-style chat) ============================ */
+.chatpage{display:flex;flex-direction:column;height:calc(100vh - var(--topbar-h))}
+.chatpage[data-mode="home"]{justify-content:center}                              /* greeting + composer + notes centred */
+.chatpage[data-mode="home"] .chatthread{display:none}
+.chatpage[data-mode="chat"] .greet,
+.chatpage[data-mode="chat"] .notes{display:none}                                 /* chat takes over: greeting + notes gone */
+
+.chatthread{flex:1;min-height:0;overflow-y:auto;width:100%;max-width:var(--home-max);margin:0 auto;padding:28px 24px 12px;display:flex;flex-direction:column;gap:18px}
+.composer-bar{flex:none;width:100%;max-width:var(--home-max);margin:0 auto;padding:10px 24px 24px}
+.chatpage[data-mode="chat"] .composer-bar{padding-bottom:24px}
+.new-chat-btn{display:none;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--accent);background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 30%,transparent);padding:8px 16px;border-radius:10px;margin-bottom:10px;letter-spacing:.01em;transition:background-color var(--dur) var(--ease),color var(--dur) var(--ease),box-shadow var(--dur) var(--ease),border-color var(--dur) var(--ease)}
+.new-chat-btn:hover{background:color-mix(in srgb,var(--accent) 18%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 15%,transparent)}
+.new-chat-btn:active{transform:scale(.97)}
+.chatpage[data-mode="chat"] .new-chat-btn{display:inline-flex}
+
+/* chat bubbles */
+.hmsg{font-size:15.5px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word;animation:fadeUp .32s var(--ease) both}
+.hmsg.user{align-self:flex-end;max-width:80%;padding:11px 15px;border-radius:16px;background:color-mix(in srgb, var(--accent) 13%, var(--surface));color:var(--ink)}
+.hmsg.bot{align-self:flex-start;max-width:88%;color:var(--ink)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* first-send transition: notes fade away, composer slides to the bottom (FLIP in JS) */
+.fade-away{animation:fadeAway .3s var(--ease) forwards;pointer-events:none}
+@keyframes fadeAway{to{opacity:0;transform:translateY(-14px)}}
+@media (prefers-reduced-motion:reduce){ .hmsg,.fade-away{animation:none} }
+
+.home-inner{max-width:var(--home-max);margin:0 auto;padding:24px 24px 80px;min-height:calc(100vh - var(--topbar-h));display:flex;flex-direction:column;justify-content:center}
+
+/* greeting: company logo + time of day + name, in serif */
+.greet{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin-bottom:28px}
+.greet-logo{height:26px;width:auto;display:block;opacity:.7}
+[data-theme="light"] .greet-logo{filter:invert(1)}      /* white wordmark file -> black on the light canvas */
+.greet h1{font-family:var(--font-serif);font-weight:400;font-size:clamp(1.9rem,4.4vw,2.55rem);letter-spacing:-.01em;line-height:1;margin:0;color:var(--ink)}
+
+/* composer (centred) */
+.ask{
+  width:100%;margin:0;
+  background:var(--surface);border:1px solid var(--hairline-2);border-radius:24px;box-shadow:var(--shadow);
+  padding:18px 18px 12px;display:flex;flex-direction:column;gap:14px;
+  transition:border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.ask:focus-within{border-color:var(--hairline-2);box-shadow:var(--shadow-lift)}
+.ask textarea{width:100%;border:none;outline:none;background:none;resize:none;font-size:15.5px;line-height:1.5;color:var(--ink);min-height:28px;max-height:200px;padding:2px 4px}
+.ask textarea::placeholder{color:var(--ink-3)}
+.ask-foot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ask-tools{display:flex;align-items:center;gap:4px}
+.c-btn{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;color:var(--ink-3);transition:background-color var(--dur) var(--ease), color var(--dur) var(--ease), box-shadow var(--dur) var(--ease)}
+.c-btn:hover{background:var(--surface-2);color:var(--ink)}
+.c-btn.recording{color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 2px var(--accent)}
+.c-model{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 9px;border-radius:8px;font-size:13px;font-weight:500;color:var(--ink);transition:background-color var(--dur) var(--ease)}
+.c-model:hover{background:var(--surface-2)}
+.c-model .lvl{color:var(--ink-3);font-weight:450}
+.c-model .ic{color:var(--ink-3)}
+
+/* notification stack, Apple lock-screen style */
+.notes-wrap{width:100%;max-width:var(--home-max);margin:26px auto 0}
+.notes{position:relative;width:100%;padding:0 24px;scrollbar-width:none}
+.notes::-webkit-scrollbar{display:none}
+/* expanded: plain scrollable list */
+.notes.expanded{overflow-y:auto;max-height:min(58vh,470px);padding-top:4px;padding-bottom:8px}
+.notes.expanded .note{margin-bottom:13px}
+/* collapsed: pile — front card full-size, older ones peek behind */
+.notes.collapsed{overflow:visible;cursor:pointer}
+.notes.collapsed .note{position:absolute;left:24px;right:24px;top:0;margin:0}
+.notes-toggle{display:block;margin:13px auto 0;padding:7px 16px;font-size:12.5px;font-weight:500;color:var(--ink-3);background:none;border:none;cursor:pointer;font-family:inherit;letter-spacing:-.01em;transition:color var(--dur) var(--ease)}
+.notes-toggle:hover{color:var(--ink)}
+.note{position:relative;display:flex;gap:13px;align-items:flex-start;padding:15px 18px;border-radius:18px;background:var(--note-bg);border:1px solid var(--hairline);box-shadow:var(--shadow);-webkit-backdrop-filter:blur(20px) saturate(140%);backdrop-filter:blur(20px) saturate(140%);transform-origin:center top;will-change:transform,opacity}
+@media (prefers-reduced-motion:no-preference){ .note{transition:transform .48s cubic-bezier(0.34,1.3,0.64,1),opacity .38s var(--ease),height .38s var(--ease)} }
+.note-app{width:40px;height:40px;flex:none;border-radius:11px;background:transparent;display:grid;place-items:center;overflow:hidden;border:1px solid var(--hairline-2)}
+.note-app svg{width:23px;height:23px}
+.note-body{flex:1;min-width:0}
+.note-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:2px}
+.note-top .app{font-size:12.5px;font-weight:500;color:var(--ink-3)}
+.note-top .time{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.note-title{margin:0 0 2px;font-size:14.5px;font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+.note-msg{margin:0;font-size:13px;line-height:1.4;color:var(--ink-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.notes-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:44px 24px;border:1px solid var(--hairline);border-radius:18px;background:var(--note-bg)}
+.notes-empty .ne-ic{width:46px;height:46px;border-radius:12px;display:grid;place-items:center;color:var(--ink-3);background:var(--surface-2)}
+.notes-empty b{font-size:14px;font-weight:600}
+.notes-empty span{font-size:13px;color:var(--ink-3);max-width:36ch}
+
+/* ============================ COMMAND PALETTE (the only glass surface) ============================ */
+.pal-back{
+  position:fixed;inset:0;z-index:90;display:none;
+  background:rgba(20,19,15,0.10);
+  padding:10px 18px 18px;justify-content:center;align-items:flex-start;
+}
+[data-theme="dark"] .pal-back{background:rgba(0,0,0,0.34)}
+.pal-back.open{display:flex}
+.palette{
+  width:100%;max-width:600px;border-radius:20px;overflow:hidden;display:flex;flex-direction:column;max-height:82vh;
+  background:color-mix(in srgb, var(--surface) 90%, transparent);
+  -webkit-backdrop-filter:blur(26px) saturate(180%);backdrop-filter:blur(26px) url(#liquid-glass) saturate(180%);
+  border:1px solid var(--hairline-2);box-shadow:0 26px 64px -26px rgba(20,19,15,0.42);transform-origin:top center;
+}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){ .palette{background:var(--surface)} }
+@media (prefers-reduced-motion:no-preference){
+  .pal-back.open .palette{animation:drop .26s var(--ease)}    /* drops down from the search */
+  @keyframes drop{from{opacity:0;transform:translateY(-10px) scale(.98)}to{opacity:1;transform:none}}
+}
+.pal-search{display:flex;align-items:center;gap:12px;padding:16px 18px;border-bottom:1px solid var(--hairline)}
+.pal-search .ic{color:var(--ink-3)}
+.pal-search input{flex:1;background:none;border:none;outline:none;font-size:15.5px;color:var(--ink);font-family:inherit}
+.pal-search input::placeholder{color:var(--ink-3)}
+.pal-search kbd{font-size:10.5px;font-weight:600;color:var(--ink-3);padding:3px 6px;border-radius:6px;background:var(--surface-2);border:1px solid var(--hairline)}
+.pal-list{overflow-y:auto;padding:8px}
+.pal-list.hide{display:none}
+.pal-chat{display:none;flex-direction:column;gap:10px;padding:16px;max-height:48vh;overflow-y:auto}
+.pal-chat.show{display:flex}
+.msg{max-width:82%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5}
+.msg.user{align-self:flex-end;background:var(--accent-soft);color:var(--ink)}
+.msg.bot{align-self:flex-start;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--hairline)}
+@media (prefers-reduced-motion:no-preference){ .msg{animation:msgin .26s var(--ease)} @keyframes msgin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}} }
+.pal-group{font-size:10.5px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);padding:13px 12px 6px}
+.pal-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:10px 12px;border-radius:12px;color:var(--ink);transition:background-color var(--dur-fast) var(--ease)}
+.pal-item .p-ic{width:34px;height:34px;flex:none;border-radius:9px;display:grid;place-items:center;color:var(--ink-2);background:var(--surface);border:1px solid var(--hairline)}
+.pal-item.ai .p-ic{color:var(--accent);background:var(--accent-soft);border-color:transparent}
+.pal-item .p-main{flex:1;min-width:0}
+.pal-item .p-main b{display:block;font-size:14px;font-weight:500}
+.pal-item .p-main span{font-size:12px;color:var(--ink-3)}
+.pal-item .chev{color:var(--ink-3)}
+.pal-item[aria-selected="true"]{background:var(--accent-soft)}
+.pal-item[aria-selected="true"] .p-main b{color:var(--accent)}
+.pal-empty{padding:28px 16px;text-align:center;color:var(--ink-3);font-size:13.5px}
+
+/* AI ask bar — pinned to palette bottom, always visible */
+.pal-ask-bar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-top:1px solid var(--hairline);background:var(--surface-2);border-radius:0 0 20px 20px}
+.pal-ask-ic{color:var(--accent);flex:none}
+.pal-ask-bar input{flex:1;background:none;border:none;outline:none;font-size:13.5px;color:var(--ink);font-family:inherit}
+.pal-ask-bar input::placeholder{color:var(--ink-3)}
+.pal-ask-send{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;flex:none;background:var(--accent);color:#fff;transition:opacity var(--dur) var(--ease),transform var(--dur) var(--ease)}
+.pal-ask-send:hover{opacity:.85}
+@media (prefers-reduced-motion:no-preference){.pal-ask-send:active{transform:scale(.93)}}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,14px);z-index:120;padding:11px 17px;border-radius:12px;font-size:13.5px;font-weight:500;background:var(--surface);border:1px solid var(--hairline);box-shadow:var(--shadow-lift);opacity:0;pointer-events:none;transition:opacity var(--dur) var(--ease), transform var(--dur) var(--ease)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:8px}
+
+/* ============================ RESPONSIVE ============================ */
+@media (max-width:1024px){ .grid-4{grid-template-columns:repeat(2,1fr)} }
+@media (max-width:760px){
+  .topbar-in{padding:0 18px}
+  .page{padding:26px 18px 72px}
+  .home-inner{padding:0 18px 96px}
+  .home-hero{padding-top:clamp(36px,8vh,90px)}
+  .notes{margin-top:54px}
+  .grid-2{grid-template-columns:1fr}
+}
+@media (max-width:520px){ .grid-4{grid-template-columns:1fr} .search{max-width:none} }
+
+/* ============================ MOTION: staggered fade-and-rise on mount ============================ */
+@media (prefers-reduced-motion:no-preference){
+  .rise{opacity:0;animation:rise .5s var(--ease) forwards;animation-delay:calc(var(--d,0) * var(--stagger))}
+  @keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important}
+  .lift:hover,.profile:hover,.ghost:active,.send-btn:active{transform:none !important}
+}
+
+/* ============================================================================
+   APPLE-STYLE LIQUID GLASS  ·  ported from apple-tahoe-liquid-glass-button.
+   Empty ::before "lens" carries the backdrop-filter (so labels never ghost) plus
+   the specular inset box-shadow stack. Chrome/Edge refract via url(#liquid-glass);
+   Safari/Firefox fall back to the plain blur. Applied to controls, never cards.
+   ============================================================================ */
+:root{
+  --gx:cubic-bezier(1,0,.4,1);
+  --grl:1; --grd:1;                          /* glass reflex: light sheen / dark depth */
+  --glass-btn:rgba(255,255,255,0.50);
+  --glass-stack:
+    inset 0 0 0 1px color-mix(in srgb, white calc(var(--grl)*10%), transparent),
+    inset 1.8px 3px 0 -2px color-mix(in srgb, white calc(var(--grl)*90%), transparent),
+    inset -2px -2px 0 -2px color-mix(in srgb, white calc(var(--grl)*80%), transparent),
+    inset -3px -8px 1px -6px color-mix(in srgb, white calc(var(--grl)*60%), transparent),
+    inset -0.3px -1px 4px 0 color-mix(in srgb, black calc(var(--grd)*12%), transparent),
+    inset -1.5px 2.5px 0 -2px color-mix(in srgb, black calc(var(--grd)*20%), transparent),
+    inset 0 3px 4px -2px color-mix(in srgb, black calc(var(--grd)*20%), transparent),
+    inset 2px -6.5px 1px -4px color-mix(in srgb, black calc(var(--grd)*10%), transparent),
+    0 1px 5px 0 color-mix(in srgb, black calc(var(--grd)*10%), transparent),
+    0 6px 16px 0 color-mix(in srgb, black calc(var(--grd)*8%), transparent);
+}
+[data-theme="dark"]{ --grl:.28; --grd:1.15; --glass-btn:rgba(255,255,255,0.05); }
+
+/* curve every control to a pill / circle */
+.search,.ghost,.profile,.iconbtn,.send-btn,.ask .mic,.navitem{border-radius:16px}   /* squared, very curved edges, not pills */
+
+/* lens treatment on the standalone controls */
+.search,.iconbtn,.send-btn,.ask .mic,.ghost,.profile{
+  position:relative;isolation:isolate;
+  border-color:transparent!important;background:transparent!important;box-shadow:none!important;
+  transition:transform .4s var(--gx), width var(--dur) var(--ease);
+}
+.search::before,.iconbtn::before,.send-btn::before,.ask .mic::before,.ghost::before,.profile::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;
+  background-color:var(--glass-btn);
+  -webkit-backdrop-filter:blur(8px) saturate(150%);
+  backdrop-filter:blur(8px) url(#liquid-glass) saturate(150%);
+  box-shadow:var(--glass-stack);
+  transition:background-color .4s var(--gx), box-shadow .4s var(--gx);
+}
+/* send keeps the single accent, now as tinted glass */
+.send-btn::before{ background-color:color-mix(in srgb, var(--accent) 72%, transparent); }
+
+/* nav items: glass lens cross-fades in on hover / active */
+.navitem{position:relative;isolation:isolate}
+.navitem::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;pointer-events:none;opacity:0;
+  background-color:var(--glass-btn);
+  -webkit-backdrop-filter:blur(8px) saturate(150%);
+  backdrop-filter:blur(8px) url(#liquid-glass) saturate(150%);
+  box-shadow:var(--glass-stack);
+  transition:opacity .3s var(--gx);
+}
+.navitem:hover,.navitem.active{background:transparent!important;box-shadow:none!important}
+.navitem:hover::before{opacity:.55}        /* hover: faint lens, clearly subordinate to active */
+.navitem.active::before{opacity:1}          /* active: full glass pill */
+.navitem.active:hover::before{opacity:1}
+
+/* interaction physics: gentle, never bouncy */
+@media (hover:hover){
+  .iconbtn:hover,.ask .mic:hover,.ghost:hover,.profile:hover,.send-btn:not(:disabled):hover{transform:scale(1.03)}
+}
+.iconbtn:active,.ask .mic:active,.ghost:active,.profile:active,.send-btn:not(:disabled):active{transform:scale(.96)}
+
+/* solid fallbacks where glass is unsupported or unwanted */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .search::before,.iconbtn::before,.ask .mic::before,.ghost::before,.profile::before,.navitem::before{background-color:var(--surface)}
+  .send-btn::before{background-color:var(--accent)}
+}
+@media (prefers-reduced-transparency:reduce){
+  .search::before,.iconbtn::before,.ask .mic::before,.ghost::before,.profile::before,.navitem::before{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--surface)}
+  .send-btn::before{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--accent)}
+}
+@media (prefers-reduced-motion:reduce){
+  .search,.iconbtn,.send-btn,.ask .mic,.ghost,.profile{transition:none!important}
+  .search:hover,.iconbtn:hover,.send-btn:hover,.ask .mic:hover,.ghost:hover,.profile:hover,
+  .search:active,.iconbtn:active,.send-btn:active,.ask .mic:active,.ghost:active,.profile:active{transform:none!important}
+}
+</style>
+</head>
+<body>
+
+<!-- Liquid-glass displacement filter (the refraction engine). Chrome/Edge use it via backdrop-filter:url(); Safari/FF ignore and fall back to plain blur. -->
+<svg aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden">
+  <filter id="liquid-glass" primitiveUnits="objectBoundingBox">
+    <feImage result="map" width="100%" height="100%" x="0" y="0" preserveAspectRatio="none"
+      href="data:image/webp;base64,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" />
+    <feGaussianBlur in="SourceGraphic" stdDeviation="0.01" result="blur" />
+    <feDisplacementMap in="blur" in2="map" scale="0.5" xChannelSelector="R" yChannelSelector="G" />
+  </filter>
+</svg>
+
+<aside class="side" id="side" aria-label="Primary"></aside>
+
+<div class="shell">
+  <header class="topbar">
+    <div class="topbar-in">
+      <button class="search" id="searchBtn" aria-label="Search, command K">
+        <span class="s-ico"></span><span class="lbl">Search</span><kbd>&#8984;K</kbd>
+      </button>
+      <button class="iconbtn chats-trigger" id="chatsBtn" aria-label="Previous chats">${''}</button>
+    </div>
+  </header>
+  <main class="view" id="main"></main>
+</div>
+
+<!-- launcher: the centred search drops into this command + AI chat panel (the only glass surface) -->
+<div class="pal-back" id="palBack" role="dialog" aria-modal="true" aria-label="Command launcher">
+  <div class="palette" id="palette">
+    <div class="pal-search">
+      <span class="pal-ic"></span>
+      <input id="palInput" type="text" placeholder="Search, jump to a section, or ask anything" autocomplete="off" spellcheck="false" />
+      <kbd>esc</kbd>
+    </div>
+    <div class="pal-list" id="palList"></div>
+    <div class="pal-chat" id="palChat"></div>
+    <div class="pal-ask-bar">
+      <svg class="pal-ask-ic" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.7 4.6L18 9l-4.3 1.4L12 15l-1.7-4.6L6 9l4.3-1.4z"/><path d="M19 14l.6 1.8 1.8.6-1.8.6L19 19l-.6-1.8L16.6 16l1.8-.6z"/></svg>
+      <input id="palAskInput" type="text" placeholder="Ask AI anything about your business…" autocomplete="off" spellcheck="false" />
+      <button type="button" id="palAskBtn" class="pal-ask-send" aria-label="Send"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></button>
+    </div>
+  </div>
+</div>
+
+<div class="chat-back" id="chatBack" role="dialog" aria-modal="true" aria-label="Previous chats">
+  <div class="chat-wrap">
+    <div class="chat-head">
+      <h3>Previous chats</h3>
+      <button class="chat-close" id="chatClose" aria-label="Close">${''}</button>
+    </div>
+    <div class="chat-grid" id="chatGrid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== ICONS (Lucide-style, inlined) ===================== */
+const ICONS = {
+  home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  layers:'<path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 17 9 5 9-5"/><path d="m3 12 9 5 9-5"/>',
+  trending:'<path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/>',
+  users:'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+  search:'<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+  sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+  moon:'<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+  chevron:'<path d="m9 18 6-6-6-6"/>',
+  menu:'<path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>',
+  x:'<path d="M18 6 6 18"/><path d="M6 6l12 12"/>',
+  message:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  plus:'<path d="M5 12h14"/><path d="M12 5v14"/>',
+  spark:'<path d="M12 3l1.7 4.6L18 9l-4.3 1.4L12 15l-1.7-4.6L6 9l4.3-1.4z"/><path d="M19 14l.6 1.8 1.8.6-1.8.6L19 19l-.6-1.8L16.6 16l1.8-.6z"/>',
+  bell:'<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  mic:'<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/>',
+  arrowup:'<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  inbox:'<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11Z"/>',
+  table:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M12 3v18"/>',
+  chevdown:'<path d="m6 9 6 6 6-6"/>',
+  waveform:'<path d="M3 10v4"/><path d="M7 6v12"/><path d="M11 8v8"/><path d="M15 5v14"/><path d="M19 9v6"/><path d="M23 11v2"/>',
+  paperclip:'<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+  pencil:'<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/>'
+};
+function icon(name,size=20){
+  return `<svg class="ic" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||''}</svg>`;
+}
+
+/* Google app logos for notification tiles (brand SVGs, multi-colour) */
+const GOOGLE = {
+  gmail:'<svg width="22" height="22" viewBox="0 0 48 48"><path fill="#4caf50" d="M45 16.2 40 19l-5 4.75V40h7a3 3 0 0 0 3-3z"/><path fill="#1e88e5" d="M3 16.2 6.6 17.9 13 23.7V40H6a3 3 0 0 1-3-3z"/><path fill="#e53935" d="M35 11.2 24 19.45 13 11.2 12 17l1 6.7 11 8.25 11-8.25 1-6.7z"/><path fill="#c62828" d="M3 12.298V16.2l10 7.5V11.2L9.876 8.859A4 4 0 0 0 3 12.298z"/><path fill="#fbc02d" d="M45 12.298V16.2l-10 7.5V11.2l3.124-2.341A4 4 0 0 1 45 12.298z"/></svg>',
+  drive:'<svg width="22" height="22" viewBox="0 0 87.3 78"><path fill="#0066da" d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H0c0 1.55.4 3.1 1.2 4.5z"/><path fill="#00ac47" d="M43.65 25 29.9 1.2c-1.35.8-2.5 1.9-3.3 3.3L1.2 48.5C.4 49.9 0 51.45 0 53h27.5z"/><path fill="#ea4335" d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z"/><path fill="#00832d" d="M43.65 25 57.4 1.2C56.05.4 54.5 0 52.95 0H34.35c-1.55 0-3.1.45-4.45 1.2z"/><path fill="#2684fc" d="M59.8 53H27.5L13.75 76.8c1.35.8 2.9 1.2 4.45 1.2h50.85c1.55 0 3.1-.45 4.45-1.2z"/><path fill="#ffba00" d="M73.4 26.5 60.75 4.5c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25 59.8 53h27.45c0-1.55-.4-3.1-1.2-4.5z"/></svg>',
+  calendar:'<svg width="24" height="24" viewBox="0 0 48 48"><rect x="6" y="8" width="36" height="36" rx="4" fill="#fff"/><rect x="6" y="8" width="36" height="36" rx="4" fill="none" stroke="#e0e0e0" stroke-width="1.5"/><text x="24" y="34" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-weight="700" font-size="18" fill="#1a73e8">31</text></svg>'
+};
+
+/* ============================ CONFIG ============================
+   Reskin = change brand.accent (+ accentDark). Paste a scope of works = fill brand + NAV (+ PAGES). */
+const brand = {
+  company:"ACMR", mark:"A",
+  owner:"Demo", ownerSub:"ACMR",
+  accent:"#356859", accentDark:"#5FB89B", mode:"light"
+};
+
+/* Generic, rename-and-extend sections. First entry is the home assistant view. */
+const NAV = [
+  { id:"overview",   label:"Overview",   icon:"home"     },
+  { id:"operations", label:"Operations", icon:"layers"   },
+  { id:"finance",    label:"Finance",    icon:"trending" },
+  { id:"team",       label:"Team",       icon:"users"    },
+];
+const navItem = id => NAV.find(i => i.id === id);
+
+const SUBTITLES = {
+  operations:"Day to day work, pipelines and status.",
+  finance:"Money in, money out and the headline numbers.",
+  team:"People, roles and activity."
+};
+
+/* Previous AI chats for the history rail + the blurred chat picker.
+   Each: { id, title, when }. Wire to real saved threads; empty array hides the rail. */
+const CHATS = [
+  { id:"c1", title:"Q2 reorder plan",             when:"Today",      blurb:"Working out stock levels and lead times for the next quarter." },
+  { id:"c2", title:"Invoice 4821 follow up",      when:"Today",      blurb:"Drafting a reminder to Kilcullen Restoration on the balance." },
+  { id:"c3", title:"Boyne Valley delivery route", when:"Yesterday",  blurb:"Planning the van run and load order for 14 lines." },
+  { id:"c4", title:"Stock count variance",        when:"Yesterday",  blurb:"Reconciling the count against the system figures." },
+  { id:"c5", title:"July team rota",              when:"2 days ago", blurb:"Building cover for the bank holiday week." },
+  { id:"c6", title:"Supplier price review",       when:"Last week",  blurb:"Comparing the new parts pricing across three suppliers." },
+];
+
+/* Command palette extras (optional, empty by default). */
+const SUGGESTED = [];   // [{ label, target }]
+const SHORTCUTS = [];   // [{ label, hint, run }]
+
+/* Home notifications, Apple push style. Each: { app:"gmail"|"drive"|"calendar" (logo tile) or any icon name,
+   appName, title, body, time }. Empty array shows the empty state. */
+const NOTIFICATIONS = [
+  { app:"gmail",    appName:"Gmail",    title:"Payment received",    body:"Kilcullen Restoration paid invoice 4821 for €2,140.", time:"2m ago" },
+  { app:"calendar", appName:"Calendar", title:"Delivery at 09:40",   body:"Van 2 to Boyne Valley Heritage, 14 lines to load.",    time:"1h ago" },
+  { app:"drive",    appName:"Drive",    title:"Stock report shared", body:"Q2 reorder list added to the Operations folder.",      time:"3h ago" },
+  { app:"gmail",    appName:"Gmail",    title:"Quote request",       body:"Naas Auto Salvage asking on a 2.0 TDI gearbox.",       time:"5h ago" },
+  { app:"calendar", appName:"Calendar", title:"MOT due Friday",      body:"Courtesy car 06-D-4471 needs a retest slot.",         time:"Yesterday" },
+  { app:"drive",    appName:"Drive",    title:"Supplier invoice in", body:"March parts statement from Carlow Motor Factors.",     time:"Yesterday" },
+];
+
+/* ============================================================================
+   SHARED COMPONENTS  ·  compose module pages from these. All render an empty
+   state when given no data, so a template stays free of fake numbers.
+   ============================================================================ */
+function GhostButton(label, { go="", icon:ic="" } = {}){
+  return `<button class="ghost" ${go?`data-go="${go}"`:""}>${ic?icon(ic,15):""}${label}</button>`;
+}
+function PageHeader({ eyebrow, title, sub }){
+  return `<div class="page-head rise">
+    ${eyebrow?`<div class="eyebrow">${eyebrow}</div>`:""}
+    <h1 class="page-title">${title}</h1>
+    ${sub?`<p class="page-sub">${sub}</p>`:""}
+  </div>`;
+}
+function KpiCard({ eyebrow="Metric", value, sub, delta } = {}){
+  return `<section class="card kpi lift rise">
+    <div class="eyebrow">${eyebrow}</div>
+    <div class="kpi-val ${value==null?"empty":""}">${value==null?"-":value}</div>
+    <div class="kpi-sub">${sub || "Wire a value"}</div>
+    ${delta?`<div class="kpi-foot"><span class="delta">${delta}</span></div>`:""}
+  </section>`;
+}
+function StatCard({ eyebrow="Stat", value, sub, icon:ic="layers" } = {}){
+  return `<section class="card stat lift rise">
+    <div class="stat-top"><div class="eyebrow">${eyebrow}</div>${icon(ic,17)}</div>
+    <div class="stat-val ${value==null?"empty":""}">${value==null?"-":value}</div>
+    <div class="stat-sub">${sub || "No data yet"}</div>
+  </section>`;
+}
+function BriefingCard({ title="Briefing", body, actions=[] } = {}){
+  return `<section class="card brief lift rise">
+    <div class="b-top">${icon("spark",17)}<span class="eyebrow">${title}</span></div>
+    <p class="${body?"":"empty"}">${body || "Your briefing will appear here once this section is wired to live data."}</p>
+    ${actions.length?`<div class="b-actions">${actions.map(a=>GhostButton(a.label,{go:a.go})).join("")}</div>`:""}
+  </section>`;
+}
+function Panel({ title="Panel", eyebrow, rows=[], empty="Nothing here yet" } = {}){
+  const body = rows.length
+    ? rows.map(r=>`<div class="row"><span class="row-ava">${initials(r.name||"")}</span><div class="row-main"><b>${r.name||""}</b><span>${r.sub||""}</span></div></div>`).join("")
+    : `<div class="empty-rows">${icon("inbox",22)}<b>${empty}</b><span>Rows render here once wired.</span></div>`;
+  return `<section class="card lift rise">
+    <div class="card-h"><div>${eyebrow?`<div class="eyebrow">${eyebrow}</div>`:""}<h3>${title}</h3></div></div>
+    <div class="rows">${body}</div>
+  </section>`;
+}
+function Table({ title="Records", columns=["","","",""], rows=[] } = {}){
+  const head = `<tr>${columns.map(c=>`<th>${c||"&nbsp;"}</th>`).join("")}</tr>`;
+  const body = rows.length
+    ? rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join("")}</tr>`).join("")
+    : `<tr class="tbl-empty"><td colspan="${columns.length}">No rows yet. Wire a data source to populate this table.</td></tr>`;
+  return `<section class="card lift rise">
+    <div class="card-h"><h3>${title}</h3></div>
+    <div class="tbl-wrap"><table class="tbl"><thead>${head}</thead><tbody>${body}</tbody></table></div>
+  </section>`;
+}
+function initials(name){ return name.split(/\s+/).slice(0,2).map(w=>w[0]||"").join("").toUpperCase() || "-"; }
+
+/* ============================================================================
+   PAGE REGISTRY  ·  overview built in full; any other section auto-scaffolds
+   from the shared components above (empty, ready to wire).
+   ============================================================================ */
+const PAGES = { overview: homeBody };
+// ADD A FULL PAGE:  PAGES["operations"] = () => `<div class="stack">${BriefingCard()}${Table()}</div>`;
+
+function homeBody(){
+  const mode = homeMsgs.length ? "chat" : "home";
+  const notes = NOTIFICATIONS.length
+    ? NOTIFICATIONS.map(noteCard).join("")
+    : `<div class="notes-empty">
+         <span class="ne-ic">${icon("bell",22)}</span>
+         <b>No notifications yet</b>
+         <span>Business alerts surface here once your data is connected.</span>
+       </div>`;
+  return `<div class="chatpage" data-mode="${mode}" id="chatpage">
+    <div class="chatthread ${homeMsgs.length?"has-msgs":""}" id="homeThread">${homeMsgs.map(homeMsg).join("")}</div>
+    <div class="greet" id="homeGreet">
+      <img class="greet-logo" src="acmr-logo.png" alt="${brand.company}" />
+      <h1>${greetWord()}, ${brand.owner}</h1>
+    </div>
+    <div class="composer-bar" id="composerBar">
+      <button type="button" class="new-chat-btn" id="newChatBtn" aria-label="New chat">${icon("pencil",15)} New chat</button>
+      <form class="ask" id="askForm">
+        <textarea id="askInput" rows="1" placeholder="How can I help you today?" spellcheck="false"></textarea>
+        <input type="file" id="fileInput" multiple accept="*/*" style="display:none" aria-hidden="true">
+        <div class="ask-foot">
+          <button type="button" class="c-btn" id="plusBtn" aria-label="Attach files" title="Attach files">${icon("paperclip",22)}</button>
+          <div class="ask-tools">
+            <button type="button" class="c-btn" id="micBtn" aria-label="Voice input" title="Voice input">${icon("mic",22)}</button>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="notes-wrap" id="homeNotesWrap">
+      <section class="notes" id="homeNotes">${notes}</section>
+      <button type="button" class="notes-toggle" id="notesToggle" style="display:none"></button>
+    </div>
+  </div>`;
+}
+function homeMsg(m){ return `<div class="hmsg ${m.role==="user"?"user":"bot"}">${escapeHtml(m.text)}</div>`; }
+function noteCard(n){
+  const tile = GOOGLE[n.app] || icon(n.icon||"bell",20);
+  return `<div class="note">
+    <span class="note-app">${tile}</span>
+    <div class="note-body">
+      <div class="note-top"><span class="app">${n.appName||""}</span><span class="time">${n.time||""}</span></div>
+      <p class="note-title">${n.title}</p>
+      ${n.body?`<p class="note-msg">${n.body}</p>`:""}
+    </div>
+  </div>`;
+}
+
+/* Auto scaffold: a tidy empty shell built from the shared components. */
+function moduleScaffold(item){
+  return `<div class="stack">
+    <div class="scaffold-note rise"><span class="badge">${icon(item.icon,18)}</span><span>This section is wired into the nav and palette. Compose it from the shared components below, or define <code>PAGES["${item.id}"]</code> to build it out.</span></div>
+    ${BriefingCard()}
+    <div class="grid grid-4">${StatCard()}${StatCard()}${StatCard()}${StatCard()}</div>
+    <div class="grid grid-2">${Panel({ title:"Recent activity" })}${KpiCard({ eyebrow:"Headline metric" })}</div>
+    ${Table()}
+  </div>`;
+}
+
+/* ============================ RENDER + STATE ============================ */
+const side = document.getElementById("side");
+const main = document.getElementById("main");
+let currentPage = "overview";
+let homeMsgs = [];     // ChatGPT-style home thread (in-memory; wire to real history)
+
+function renderSidebar(){
+  const items = NAV.map(it=>`
+    <button class="navitem ${it.id===currentPage?"active":""}" data-id="${it.id}">
+      <span class="ind"></span><span class="s-ic">${icon(it.icon,19)}</span><span class="s-lbl">${it.label}</span>
+    </button>`).join("");
+  side.innerHTML = `
+    <div class="brand">
+      <img class="brand-logo" src="acmr-logo.png" alt="${brand.company}" />
+      <span class="brand-sub">Command centre</span>
+    </div>
+    <nav class="nav">${items}</nav>
+    <div class="side-foot">
+      <button class="navitem" id="themeBtn" aria-label="Toggle theme">
+        <span class="ind"></span><span class="s-ic t-ic">${icon("moon",18)}</span><span class="s-lbl t-lbl">Dark mode</span>
+      </button>
+      <button class="profile" id="profileBtn" style="margin-top:6px">
+        <span class="s-ic"><span class="avatar">${initials(brand.owner)}</span></span>
+        <span class="who"><b>${brand.owner}</b><span>${brand.ownerSub}</span></span>
+        <span class="chev">${icon("chevron",16)}</span>
+      </button>
+    </div>`;
+  side.querySelectorAll(".nav .navitem").forEach(b=>b.addEventListener("click",()=>setPage(b.dataset.id)));
+  side.querySelector("#themeBtn").addEventListener("click",toggleTheme);
+  side.querySelector("#profileBtn").addEventListener("click",()=>showToast("Profile and settings are ready to wire"));
+}
+
+/* ---- previous chats: top-right trigger + blurred detached-glass picker ---- */
+const chatsBtn = document.getElementById("chatsBtn");
+const chatBack = document.getElementById("chatBack");
+const chatGrid = document.getElementById("chatGrid");
+
+function renderHistory(){
+  if(!CHATS.length){ if(chatsBtn) chatsBtn.style.display="none"; return; }
+  chatsBtn.innerHTML = icon("menu",18);
+  chatsBtn.addEventListener("click",openChatPicker);
+  const xb = document.getElementById("chatClose");
+  if(xb){ xb.innerHTML = icon("x",17); xb.addEventListener("click",closeChatPicker); }
+  chatGrid.innerHTML = CHATS.map((c,i)=>`
+    <button class="chat-pill" data-chat="${c.id}" style="--cd:${i*45}ms">
+      <span class="cp-when">${c.when}</span>
+      <b>${c.title}</b>
+      <span class="cp-blurb">${c.blurb}</span>
+    </button>`).join("");
+  chatGrid.querySelectorAll(".chat-pill").forEach(b=>b.addEventListener("click",()=>openChat(b.dataset.chat)));
+}
+function openChatPicker(){
+  chatGrid.querySelectorAll(".chat-pill").forEach(p=>{ p.style.animation="none"; void p.offsetWidth; p.style.animation=""; });
+  chatBack.classList.add("open"); document.body.classList.add("chat-open");
+}
+function closeChatPicker(){ chatBack.classList.remove("open"); document.body.classList.remove("chat-open"); }
+function openChat(id){
+  const c = CHATS.find(x=>x.id===id); if(!c) return;
+  closeChatPicker();
+  homeMsgs = [{ role:"user", text:c.title }, { role:"bot", text:c.blurb }];  // load the thread into the home chat (stub)
+  setPage("overview");
+}
+chatBack.addEventListener("click",e=>{ if(e.target===chatBack) closeChatPicker(); });
+
+function renderMain(){
+  if(currentPage === "overview"){
+    main.innerHTML = homeBody();
+    wireHome();
+  } else {
+    const it = navItem(currentPage);
+    const body = PAGES[currentPage] ? PAGES[currentPage]() : moduleScaffold(it);
+    main.innerHTML = `<div class="page">${PageHeader({ eyebrow:"Module", title:it.label, sub:SUBTITLES[it.id] || "This section is wired in and ready to build." })}${body}</div>`;
+  }
+  main.querySelectorAll(".rise").forEach((el,i)=>{ if(!el.style.getPropertyValue("--d")) el.style.setProperty("--d", i); });
+  main.querySelectorAll("[data-go]").forEach(b=>b.addEventListener("click",()=>{ if(b.dataset.go) setPage(b.dataset.go); }));
+  window.scrollTo({top:0});
+}
+
+function renderHomeThread(){
+  const thread = document.getElementById("homeThread"); if(!thread) return;
+  thread.classList.toggle("has-msgs", homeMsgs.length>0);
+  thread.innerHTML = homeMsgs.map(homeMsg).join("");
+  thread.scrollTop = thread.scrollHeight;
+}
+const BOT_STUB = "Ask AI is not wired yet. Connect a server route at /api/ask to answer from your business data.";
+function botReply(){
+  // wire to a server route at /api/ask (Anthropic SDK, model claude-sonnet-4-6). Key NEVER in the browser.
+  setTimeout(()=>{ homeMsgs.push({ role:"bot", text:BOT_STUB }); renderHomeThread(); }, 300);
+}
+function sendHome(q){ homeMsgs.push({ role:"user", text:q }); renderHomeThread(); botReply(); }
+
+/* first message: notes fade out, composer slides middle -> bottom (FLIP), thread appears */
+function startChat(q){
+  const page = document.getElementById("chatpage");
+  const bar  = document.getElementById("composerBar");
+  const greet= document.getElementById("homeGreet");
+  const notes= document.getElementById("homeNotesWrap");
+  const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+  const first = bar.getBoundingClientRect();           // composer position before the switch
+  homeMsgs.push({ role:"user", text:q }); renderHomeThread();
+  if(greet) greet.classList.add("fade-away");
+  if(notes) notes.classList.add("fade-away");
+  page.dataset.mode = "chat";                           // layout flips: composer reflows to the bottom
+
+  if(!reduce){
+    const last = bar.getBoundingClientRect();
+    const dy = first.top - last.top;
+    bar.style.transition = "none";
+    bar.style.transform  = `translateY(${dy}px)`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      bar.style.transition = "transform .52s var(--ease)";
+      bar.style.transform  = "";
+    }));
+    bar.addEventListener("transitionend",()=>{ bar.style.transition=""; },{ once:true });
+  }
+  setTimeout(()=>{ greet&&greet.remove(); notes&&notes.remove(); }, 320);
+  botReply();
+}
+function wireHome(){
+  const form = document.getElementById("askForm"); if(!form) return;
+  const ta = document.getElementById("askInput");
+
+  /* new chat: clear thread and return to home greeting */
+  const newChatBtn = document.getElementById("newChatBtn");
+  if(newChatBtn) newChatBtn.addEventListener("click",()=>{ homeMsgs=[]; renderMain(); });
+  form.addEventListener("submit",e=>{ e.preventDefault(); const q=ta.value.trim(); if(!q) return; (homeMsgs.length?sendHome:startChat)(q); ta.value=""; ta.style.height="auto"; });
+  ta.addEventListener("input",()=>{ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,200)+"px"; });
+  ta.addEventListener("keydown",e=>{ if(e.key==="Enter" && !e.shiftKey){ e.preventDefault(); form.requestSubmit(); }});
+
+  /* attach files */
+  const fileInput = document.getElementById("fileInput");
+  const plusBtn   = document.getElementById("plusBtn");
+  if(plusBtn && fileInput){
+    plusBtn.addEventListener("click",()=>fileInput.click());
+    fileInput.addEventListener("change",()=>{
+      const files=[...fileInput.files];
+      if(!files.length) return;
+      const names=files.map(f=>f.name).join(", ");
+      showToast(files.length===1?`Attached: ${names}`:`Attached ${files.length} files`);
+      fileInput.value="";
+    });
+  }
+
+  /* mic toggle */
+  const micBtn = document.getElementById("micBtn");
+  let micActive=false;
+  if(micBtn){
+    micBtn.addEventListener("click",()=>{
+      micActive=!micActive;
+      micBtn.classList.toggle("recording",micActive);
+      showToast(micActive?"Listening…":"Microphone off");
+    });
+  }
+
+  wireNoteStack();
+}
+
+/* Apple lock-screen notification stack: collapsed pile (click to expand/collapse) */
+const NOTE_VISIBLE = 3;   // cards visible in pile
+const NOTE_PEEK    = 12;  // px each deeper card peeks below the one in front
+const NOTE_SCALE   = 0.05;
+let notesExpanded = false;
+
+function wireNoteStack(){
+  notesExpanded = false;
+  const toggle = document.getElementById("notesToggle");
+  if(toggle){
+    toggle.addEventListener("click", e=>{ e.stopPropagation(); notesExpanded=!notesExpanded; layoutNotes(); });
+  }
+  const stack = document.getElementById("homeNotes");
+  if(stack && !stack.dataset.wired){
+    stack.dataset.wired = "1";
+    stack.addEventListener("click", ()=>{ if(!notesExpanded){ notesExpanded=true; layoutNotes(); } });
+  }
+  layoutNotes();
+}
+
+function layoutNotes(){
+  const stack = document.getElementById("homeNotes");
+  if(!stack) return;
+  const cards = [...stack.querySelectorAll(".note")];
+  if(!cards.length) return;
+
+  const collapsible = cards.length > NOTE_VISIBLE;
+  const collapsed   = collapsible && !notesExpanded;
+
+  stack.classList.toggle("collapsed", collapsed);
+  stack.classList.toggle("expanded",  !collapsed);
+
+  const toggle = document.getElementById("notesToggle");
+  if(toggle){
+    toggle.style.display  = collapsible ? "" : "none";
+    toggle.textContent    = notesExpanded ? "Show less" : `Show all ${cards.length}`;
+  }
+
+  if(collapsed){
+    cards.forEach((c,i)=>{
+      const d       = Math.min(i, NOTE_VISIBLE - 1);
+      const hidden  = i >= NOTE_VISIBLE;
+      c.style.transform    = `translateY(${d * NOTE_PEEK}px) scale(${1 - d * NOTE_SCALE})`;
+      c.style.opacity      = hidden ? "0" : String(1 - d * 0.14);
+      c.style.zIndex       = String(cards.length - i);
+      c.style.pointerEvents = hidden ? "none" : "";
+    });
+    const h0 = cards[0].getBoundingClientRect().height;
+    stack.style.height = (h0 + (NOTE_VISIBLE - 1) * NOTE_PEEK + 4) + "px";
+  } else {
+    cards.forEach(c=>{ c.style.transform=""; c.style.opacity=""; c.style.zIndex=""; c.style.pointerEvents=""; });
+    stack.style.height = "";
+  }
+}
+window.addEventListener("resize", ()=>{ try{ layoutNotes(); }catch(e){} });
+
+function setPage(id){
+  if(!navItem(id)) return;
+  if(id === "overview") homeMsgs = [];
+  currentPage = id;
+  side.querySelectorAll(".navitem").forEach(b=>b.classList.toggle("active", b.dataset.id===id));
+  closePalette();
+  renderMain();
+}
+
+/* ---- theme ---- */
+function applyBrandAccent(){
+  const dark = document.documentElement.getAttribute("data-theme")==="dark";
+  const a = dark ? (brand.accentDark||brand.accent) : brand.accent;
+  document.documentElement.style.setProperty("--accent", a);
+  document.documentElement.style.setProperty("--accent-soft", hexToRgba(a, dark?0.14:0.10));
+}
+function setTheme(mode){
+  const root = document.documentElement;
+  root.classList.add("theme-switching");          // freeze all transitions so every element flips at once
+  root.setAttribute("data-theme", mode);
+  try{ localStorage.setItem("cc-theme", mode); }catch(e){}
+  applyBrandAccent(); syncThemeBtn();
+  void root.offsetWidth;                            // force reflow so the no-transition paint commits
+  requestAnimationFrame(()=>requestAnimationFrame(()=>root.classList.remove("theme-switching")));
+}
+function toggleTheme(){ setTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark"); }
+function syncThemeBtn(){
+  const b = document.getElementById("themeBtn"); if(!b) return;
+  const dark = document.documentElement.getAttribute("data-theme")==="dark";
+  const i = b.querySelector(".t-ic"), l = b.querySelector(".t-lbl");
+  if(i) i.innerHTML = icon(dark?"sun":"moon",18);
+  if(l) l.textContent = dark?"Light mode":"Dark mode";
+  b.setAttribute("aria-label", dark?"Switch to light mode":"Switch to dark mode");
+}
+function hexToRgba(hex,a){ const h=hex.replace("#",""); const n=parseInt(h.length===3?h.split("").map(c=>c+c).join(""):h,16); return `rgba(${(n>>16)&255}, ${(n>>8)&255}, ${n&255}, ${a})`; }
+
+/* ============================ COMMAND PALETTE ============================ */
+const palBack = document.getElementById("palBack");
+const palInput = document.getElementById("palInput");
+const palList = document.getElementById("palList");
+const palChat = document.getElementById("palChat");
+let palItems = [], palActive = 0, palMode = "cmd", chatMsgs = [];
+
+function resetPalette(){ palMode="cmd"; chatMsgs=[]; palChat.classList.remove("show"); palChat.innerHTML=""; palList.classList.remove("hide"); palInput.value=""; palInput.placeholder="Search, jump to a section, or ask anything"; }
+function openPalette(){ document.body.classList.add("cmd-open"); palBack.classList.add("open"); resetPalette(); buildPalette(""); setTimeout(()=>palInput.focus(),20); }
+function closePalette(){ palBack.classList.remove("open"); document.body.classList.remove("cmd-open"); resetPalette(); }
+/* AI chat thread inside the launcher, opened from the search or the home composer */
+function renderChat(){ palChat.innerHTML = chatMsgs.map(m=>`<div class="msg ${m.role==="user"?"user":"bot"}">${escapeHtml(m.text)}</div>`).join(""); palChat.scrollTop = palChat.scrollHeight; }
+function enterChat(q){
+  q=(q||"").trim(); if(!q) return;
+  palMode="chat"; palList.classList.add("hide"); palChat.classList.add("show");
+  palInput.placeholder="Reply to keep the thread going";
+  chatMsgs.push({ role:"user", text:q }); renderChat(); palInput.value="";
+  // STUB reply. Wire askAI() to a server route (see the Ask AI comment) and replace this line with the real answer.
+  setTimeout(()=>{ chatMsgs.push({ role:"bot", text:"Ask AI is not wired yet. Connect a server route at /api/ask to answer from your business data, see the code comment below." }); renderChat(); }, 260);
+}
+function isPaletteOpen(){ return palBack.classList.contains("open"); }
+
+function buildPalette(q){
+  const query = q.trim(), lc = query.toLowerCase(), match = s => s.toLowerCase().includes(lc);
+  palItems = []; let html = "";
+  if(query){
+    palItems.push({ type:"ai", query });
+    html += `<button class="pal-item ai" data-i="${palItems.length-1}"><span class="p-ic">${icon("spark",18)}</span><div class="p-main"><b>Ask AI: ${escapeHtml(query)}</b><span>Answer grounded in your business data</span></div>${icon("arrowup",16)}</button>`;
+  }
+  const sug = SUGGESTED.filter(s=>!query||match(s.label));
+  if(sug.length){
+    html += `<div class="pal-group">Suggested</div>`;
+    html += sug.map(s=>{ palItems.push({type:"page",target:s.target}); return `<button class="pal-item" data-i="${palItems.length-1}"><span class="p-ic">${icon("search",18)}</span><div class="p-main"><b>${s.label}</b></div><span class="chev">${icon("chevron",16)}</span></button>`; }).join("");
+  }
+  const sc = SHORTCUTS.filter(s=>!query||match(s.label));
+  if(sc.length){
+    html += `<div class="pal-group">Shortcuts</div>`;
+    html += sc.map(s=>{ palItems.push({type:"shortcut",run:s.run}); return `<button class="pal-item" data-i="${palItems.length-1}"><span class="p-ic">${icon("plus",18)}</span><div class="p-main"><b>${s.label}</b></div>${s.hint?`<kbd>${s.hint}</kbd>`:""}</button>`; }).join("");
+  }
+  const pages = NAV.filter(it=>!query||match(it.label));
+  if(pages.length){
+    html += `<div class="pal-group">Pages</div>`;
+    html += pages.map(it=>{ palItems.push({type:"page",target:it.id}); return `<button class="pal-item" data-i="${palItems.length-1}"><span class="p-ic">${icon(it.icon,18)}</span><div class="p-main"><b>${it.label}</b><span>${SUBTITLES[it.id]||"Open section"}</span></div><span class="chev">${icon("chevron",16)}</span></button>`; }).join("");
+  }
+  if(!palItems.length) html = `<div class="pal-empty">No matches for "${escapeHtml(query)}"</div>`;
+  palList.innerHTML = html; palActive = 0; highlight();
+  palList.querySelectorAll("[data-i]").forEach(el=>{
+    el.addEventListener("click",()=>runPalItem(+el.dataset.i));
+    el.addEventListener("mousemove",()=>{ palActive=+el.dataset.i; highlight(); });
+  });
+}
+function highlight(){
+  palList.querySelectorAll("[data-i]").forEach(el=>el.setAttribute("aria-selected",(+el.dataset.i===palActive)?"true":"false"));
+  const a = palList.querySelector('[aria-selected="true"]'); if(a) a.scrollIntoView({block:"nearest"});
+}
+function runPalItem(i){
+  const it = palItems[i]; if(!it) return;
+  if(it.type==="ai"){ enterChat(it.query); return; }
+  if(it.type==="page") setPage(it.target);
+  else if(it.type==="shortcut") it.run();
+  closePalette();
+}
+
+/* === Ask AI (stub) =========================================================
+   Wire to the Anthropic API via a SERVER route (never expose a key in the browser). Next.js · app/api/ask/route.ts:
+     import Anthropic from "@anthropic-ai/sdk";
+     const client = new Anthropic();                      // reads ANTHROPIC_API_KEY
+     export async function POST(req){
+       const { query } = await req.json();
+       const msg = await client.messages.create({
+         model:"claude-sonnet-4-6", max_tokens:600,
+         system:"You are the command centre assistant. Answer plainly from the business data. No exclamation marks, no em dashes.",
+         messages:[{ role:"user", content: query }],
+       });
+       return Response.json({ text: msg.content[0].type==="text" ? msg.content[0].text : "" });
+     }
+   ========================================================================= */
+function askAI(query){ console.log("[Ask AI stub]", query); showToast("Ask AI is stubbed. Wire it to /api/ask, see the code comment."); }
+
+function escapeHtml(s){ return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+/* ============================ TOAST + HELPERS ============================ */
+const toast = document.getElementById("toast"); let toastTimer;
+function showToast(msg){ toast.textContent=msg; toast.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>toast.classList.remove("show"),2600); }
+function greetWord(){ const h=new Date().getHours(); return h<12?"Morning":h<18?"Afternoon":"Evening"; }
+
+/* ============================ WIRING ============================ */
+document.querySelector(".pal-ic").innerHTML = icon("search",18);
+document.querySelector("#searchBtn .s-ico").innerHTML = icon("search",16);
+document.getElementById("searchBtn").addEventListener("click",openPalette);
+palBack.addEventListener("click",e=>{ if(e.target===palBack) closePalette(); });
+palInput.addEventListener("input",e=>{ if(palMode==="cmd") buildPalette(e.target.value); });
+document.addEventListener("keydown",e=>{
+  if((e.metaKey||e.ctrlKey) && e.key.toLowerCase()==="k"){ e.preventDefault(); isPaletteOpen()?closePalette():openPalette(); return; }
+  if(e.key==="Escape" && chatBack.classList.contains("open")){ e.preventDefault(); closeChatPicker(); return; }
+  if(!isPaletteOpen()) return;
+  if(e.key==="Escape"){ e.preventDefault(); closePalette(); }
+  else if(e.key==="ArrowDown" && palMode==="cmd"){ e.preventDefault(); palActive=Math.min(palActive+1,palItems.length-1); highlight(); }
+  else if(e.key==="ArrowUp" && palMode==="cmd"){ e.preventDefault(); palActive=Math.max(palActive-1,0); highlight(); }
+  else if(e.key==="Enter"){ e.preventDefault(); if(palMode==="chat") enterChat(palInput.value); else runPalItem(palActive); }
+});
+
+/* AI ask-bar (bottom of palette) */
+const palAskInput = document.getElementById("palAskInput");
+const palAskBtn   = document.getElementById("palAskBtn");
+function submitAsk(){
+  const q = palAskInput.value.trim(); if(!q) return;
+  palAskInput.value = "";
+  enterChat(q);
+}
+palAskBtn.addEventListener("click", submitAsk);
+palAskInput.addEventListener("keydown", e=>{ if(e.key==="Enter"){ e.preventDefault(); submitAsk(); } });
+
+/* ---- boot ---- */
+(function init(){
+  let theme = brand.mode;
+  try{ const t=localStorage.getItem("cc-theme"); if(t) theme=t; }catch(e){}
+  document.documentElement.setAttribute("data-theme", theme);
+  applyBrandAccent();
+  renderSidebar();
+  renderHistory();
+  syncThemeBtn();
+  renderMain();
+})();
+</script>
+<!-- account menu + settings modal (self-contained add-on) -->
+<script src="settings-addon.js"></script>
+</body>
+</html>

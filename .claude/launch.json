@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "static",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["/Users/macobrien/Downloads/Kimi_Agent_网站改版需求 (1)/ACMR business managment tool template/.claude/preview-server.js"],
+      "port": 4173
+    }
+  ]
+}
