@@ -339,7 +339,7 @@
 
   function ringStat(value,max,{label="",size=120,thick=12,tone="accent",center=null}={}){
     const r=(size-thick)/2,c=size/2,C=2*Math.PI*r,dash=Math.min(1,value/max)*C;
-    return `<div class="wr-ring"><svg viewBox="0 0 ${size} ${size}"><circle class="rg-track" cx="${c}" cy="${c}" r="${r}" stroke-width="${thick}"/>
+    return `<div class="wr-ring" style="width:${size}px;height:${size}px"><svg viewBox="0 0 ${size} ${size}"><circle class="rg-track" cx="${c}" cy="${c}" r="${r}" stroke-width="${thick}"/>
       <circle class="rg-fill wr-arc tone-${tone}" cx="${c}" cy="${c}" r="${r}" stroke-width="${thick}" stroke-linecap="round" stroke-dasharray="${dash.toFixed(1)} ${(C-dash).toFixed(1)}" transform="rotate(-90 ${c} ${c})"/></svg>
       <div class="rg-center">${center||`<b>${value}</b><span>${label}</span>`}</div></div>`;
   }
@@ -380,11 +380,11 @@
     ]},
     /* ------------------------------------------------------- BOOKINGS ----- */
     bookings:{ tabs:[
-      { id:"seats", label:"Seat Truth", render:bkSeats },
+      { id:"seats", label:"Live Seats", render:bkSeats },
       { id:"channels", label:"Channels", render:bkChannels },
       { id:"pickups", label:"Pickups", render:bkPickups },
       { id:"confirm", label:"Confirmations", render:bkConfirm },
-      { id:"attribution", label:"Attribution", render:bkAttribution },
+      { id:"attribution", label:"Booking Window", render:bkAttribution },
     ]},
     /* ------------------------------------------------------ CUSTOMERS ----- */
     customers:{ tabs:[
@@ -485,15 +485,21 @@
      run to their tour region: each draws the completed leg (solid), the
      remaining leg (faint dashed) and a live marker at its progress. */
   const COAST = [
-    [-7.37,55.38],[-7.02,55.30],[-7.05,55.18],[-6.66,55.21],[-6.51,55.24],[-6.24,55.20],[-6.03,55.12],
-    [-5.80,54.85],[-5.70,54.70],[-5.53,54.64],[-5.45,54.50],[-5.55,54.23],[-5.89,54.22],[-6.20,54.05],
-    [-6.40,53.99],[-6.24,53.79],[-6.35,53.72],[-6.11,53.58],[-6.07,53.39],[-6.13,53.29],[-6.05,53.13],
-    [-6.04,52.97],[-6.14,52.79],[-6.21,52.50],[-6.46,52.34],[-6.36,52.18],[-6.93,52.12],[-7.15,52.16],
-    [-7.62,52.09],[-7.85,51.95],[-8.27,51.79],[-8.52,51.71],[-8.93,51.53],[-9.37,51.48],[-9.82,51.45],
-    [-9.85,51.62],[-9.85,51.85],[-10.13,51.78],[-10.30,51.92],[-10.27,52.07],[-10.27,52.24],[-9.90,52.27],
-    [-9.93,52.56],[-9.64,52.68],[-9.43,52.97],[-9.30,53.15],[-9.05,53.27],[-9.50,53.26],[-10.10,53.34],
-    [-9.92,53.49],[-9.85,53.62],[-9.85,53.83],[-10.10,53.97],[-10.00,54.30],[-9.33,54.33],[-8.65,54.30],
-    [-8.30,54.55],[-8.45,54.63],[-8.73,54.71],[-8.30,55.05],[-8.30,55.15],[-7.90,55.20],[-7.55,55.25],
+    [-7.37,55.38],[-7.18,55.29],[-6.97,55.19],[-6.72,55.18],[-6.51,55.24],[-6.36,55.23],[-6.24,55.21],[-6.16,55.21],
+    [-6.04,55.13],[-5.97,54.99],[-5.90,54.92],[-5.80,54.85],[-5.71,54.78],[-5.82,54.71],[-5.93,54.63],
+    [-5.70,54.67],[-5.55,54.64],[-5.47,54.49],[-5.53,54.38],[-5.58,54.27],[-5.66,54.24],[-5.89,54.22],[-6.05,54.05],
+    [-6.20,54.05],[-6.36,53.97],[-6.24,53.86],[-6.22,53.72],[-6.11,53.58],[-6.07,53.42],[-6.05,53.30],
+    [-6.06,53.15],[-6.04,52.96],[-6.14,52.79],[-6.22,52.55],[-6.34,52.30],[-6.36,52.18],
+    [-6.58,52.17],[-6.93,52.12],[-7.20,52.13],[-7.55,52.06],[-7.85,51.95],[-8.02,51.84],[-8.27,51.79],
+    [-8.45,51.70],[-8.70,51.58],[-8.99,51.52],[-9.28,51.50],[-9.55,51.47],[-9.82,51.45],
+    [-9.66,51.61],[-9.45,51.68],[-9.70,51.74],[-9.98,51.66],[-10.18,51.62],[-9.88,51.83],[-9.70,51.88],
+    [-10.02,51.93],[-10.30,51.93],[-10.12,52.06],[-9.95,52.13],[-10.27,52.14],[-10.46,52.11],[-10.16,52.30],
+    [-9.92,52.27],[-9.78,52.42],[-9.66,52.52],[-9.93,52.57],[-9.64,52.68],[-9.36,52.92],[-9.43,52.97],
+    [-9.28,53.14],[-9.06,53.15],[-9.06,53.27],
+    [-9.40,53.24],[-9.80,53.30],[-10.23,53.40],[-9.98,53.50],[-9.85,53.62],[-9.55,53.78],[-9.88,53.86],
+    [-10.20,53.97],[-10.06,54.10],[-9.96,54.30],
+    [-9.33,54.33],[-9.10,54.22],[-8.65,54.30],[-8.42,54.47],[-8.20,54.49],[-8.48,54.63],[-8.73,54.70],
+    [-8.50,54.84],[-8.33,54.97],[-8.30,55.15],[-7.95,55.22],[-7.72,55.25],[-7.50,55.28],
   ];
   const PLACES = {
     dublin:[-6.20,53.34], galway:[-9.05,53.27], cliffs:[-9.43,52.97], limerick:[-8.62,52.66],
@@ -503,7 +509,7 @@
   };
   const CITY_LABELS = [["galway","Galway",-44],["cork","Cork",8],["belfast","Belfast",10],
     ["limerick","Limerick",-58],["sligo","Sligo",-38],["kilkenny","Kilkenny",10]];
-  const LOUGHS = [ {at:[-6.45,54.62],rx:10,ry:20}, {at:[-9.28,53.45],rx:6,ry:16} ]; // Neagh, Corrib
+  const LOUGHS = [ {at:[-6.46,54.62],rx:13,ry:17}, {at:[-9.30,53.46],rx:5,ry:18}, {at:[-8.35,52.95],rx:4,ry:13} ]; // Neagh, Corrib, Derg
   const SHANNON = [[-8.62,52.66],[-8.45,52.83],[-8.10,53.00],[-8.00,53.25],[-8.02,53.42],[-8.00,53.70],[-8.05,54.00]];
   // every coach leaves Dublin; via + dest set the trail, prog is how far along (0..1)
   // lab:[dx,dy] offsets the label off the marker (with a leader line) to de-clutter
@@ -582,6 +588,13 @@
     ${card("Coaches out now", `
       <div class="wr-map">
         <svg viewBox="0 0 ${VW} ${VH}" class="wr-ireland" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Live map of Ireland with ${out.length} coaches and their routes">
+          <defs>
+            <linearGradient id="wrLand" x1="0" y1="0" x2="0.2" y2="1">
+              <stop offset="0" class="wr-land-a"/><stop offset="1" class="wr-land-b"/>
+            </linearGradient>
+            <filter id="wrSea" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="3.2"/></filter>
+          </defs>
+          <path d="${coastPath}" class="wr-coast-halo"/>
           <path d="${coastPath}" class="wr-coast"/>
           ${shannon}${loughs}
           <path d="${coastPath}" class="wr-coast-line"/>
@@ -679,16 +692,44 @@
 
   /* ------------------------------------------------------ BOOKINGS pages -- */
   function bkSeats(){
+    const sold=DEPARTURES.reduce((a,d)=>a+d.sold,0);
+    const cap=DEPARTURES.reduce((a,d)=>a+d.cap,0);
+    const load=Math.round(sold/cap*100);
+    const nearFull=DEPARTURES.filter(d=>d.sold/d.cap>=0.95).length;
+    const low=DEPARTURES.filter(d=>d.sold/d.cap<0.5).length;
     const rows = DEPARTURES.map(d=>{ const load=Math.round(d.sold/d.cap*100); const over = d.sold>d.cap;
       const name = `<b>${ROUTES[d.route].name}</b>` + (d.when?` <span class="muted">${d.when}</span>`:"");
       return { _ent:`departure:${d.id}`, cells:[ name, `${d.sold} / ${d.cap}`, bar(load, load<50?"bad":load<75?"warn":""), over?chip("bad","Oversell"):load>=98?chip("warn","Near full"):chip("ok","Open") ] }; });
     return `
-    ${card("One live seat count per departure", tableHTML(["Departure","Sold / Cap","Load","Status"], rows), {eyebrow:"Every channel, one number · oversell prevented"})}
+    <div class="wr-strip">
+      ${tile({label:"Seats sold today",value:String(sold),raw:sold,sub:cap+" seats available",delta:{dir:"up",v:"6%"},spark:[142,151,160,158,165,sold]})}
+      ${tile({label:"Avg load factor",value:String(load),suf:"%",raw:load,sub:"across "+DEPARTURES.length+" departures",delta:{dir:"up",v:"3pt"},spark:[71,73,72,74,75,load]})}
+      ${tile({label:"Near full",value:String(nearFull),sub:"95%+ sold, hold a waitlist"})}
+      ${tile({label:"Low-load",value:String(low),sub:"under break-even",tone:"danger"})}
+    </div>
+    ${card("One live seat count per departure", tableHTML([{label:"Departure",sort:true},{label:"Sold / Cap",num:true,sort:true},"Load","Status"], rows), {eyebrow:"Every channel, one number · oversell prevented"})}
     <div class="scaffold-note rise"><span class="badge">${icon("ticket",18)}</span><span>Rezgo, Viator, Bresno, Big Bus and DoDublin all write to the same seat count. The number you see is the number that exists.</span></div>`;
   }
   function bkChannels(){
-    const rows = CHANNELS.map(c=>({ cells:[`<b>${c.name}</b>`, c.comm+"%", c.share+"%", bar(c.share)] }));
-    return card("Every channel in one view", tableHTML(["Channel","Commission","Share of bookings","" ], rows), {eyebrow:"Direct vs OTA at a glance"});
+    const TONES=["accent","ink","warn","mute","danger"];
+    const direct=CHANNELS.find(c=>c.id==="direct").share;
+    const blended=Math.round(CHANNELS.reduce((a,c)=>a+c.share*c.comm,0)/CHANNELS.reduce((a,c)=>a+c.share,0)*10)/10;
+    const segs=CHANNELS.map((c,i)=>({label:c.name.replace(/ \(.*\)/,""),value:c.share,tone:TONES[i%TONES.length]}));
+    const rows = CHANNELS.map((c,i)=>({ cells:[
+      `<span class="wr-chan"><i class="dl-sw tone-${TONES[i%TONES.length]}"></i><b>${c.name}</b></span>`,
+      c.comm===0?chip("ok","0% · direct"):c.comm+"%",
+      `<span class="wr-seatcell">${c.share}% ${bar(c.share,c.comm===0?"":"warn")}</span>` ] }));
+    return `
+    <div class="wr-strip">
+      ${tile({label:"Direct share",value:String(direct),suf:"%",raw:direct,sub:"commission-free bookings",delta:{dir:"up",v:"2pt"},spark:[28,30,31,32,33,direct]})}
+      ${tile({label:"Blended commission",value:String(blended),suf:"%",raw:blended,dec:1,sub:"weighted across all channels"})}
+      ${tile({label:"Commission this month",value:"41.2",pre:"€",suf:"k",raw:41.2,dec:1,sub:"paid to OTAs",tone:"danger"})}
+    </div>
+    <div class="grid grid-2">
+      ${card("Booking mix", `<div class="wr-split"><div>${donut(segs,{center:`<b>${direct}%</b><span>direct</span>`})}</div><div>${donutLegend(segs)}</div></div>`, {eyebrow:"Share of bookings by channel"})}
+      ${card("Commission ladder", hbars(CHANNELS.map((c,i)=>({label:c.name.replace(/ \(.*\)/,""),value:c.comm,tone:c.comm===0?"accent":c.comm>=25?"danger":"warn"})),{fmt:v=>v+"%"}), {eyebrow:"What each channel costs you"})}
+    </div>
+    ${card("Every channel in one view", tableHTML([{label:"Channel",sort:true},{label:"Commission",num:true,sort:true},{label:"Share of bookings",num:true,sort:true}], rows), {eyebrow:"Direct vs OTA at a glance"})}`;
   }
   function bkPickups(){
     return `<div class="grid grid-2">${Object.entries(ROUTES).map(([id,r])=>card(r.name, `<div class="rows">${r.pickups.map(p=>`<div class="row"><span class="row-ava">${icon("pin",15)}</span><div class="row-main"><b>${p.split(" ")[0]}</b><span>${p.split(" ").slice(1).join(" ")}</span></div></div>`).join("")}</div>`, {eyebrow:"Morning pickups"})).join("")}</div>`;
@@ -703,8 +744,12 @@
       <div class="b-actions"><button class="ghost" data-toast="Return-seat link copied">Copy guest link</button></div>`, {eyebrow:"Kills the noon phone call"})}`;
   }
   function bkAttribution(){
-    const rows = [["Direct (Rezgo)","2.3 days","34%"],["Viator","6.1 days","27%"],["Bresno","5.4 days","14%"],["Big Bus","1.1 days","13%"],["DoDublin","0.8 days","12%"]];
-    return card("Source and time to book", tableHTML(["Channel","Avg time to book","Share"], rows.map(r=>({cells:r}))), {eyebrow:"Where bookings come from, and how early"});
+    const data=[["Direct (Rezgo)",2.3,34],["Viator",6.1,27],["Bresno",5.4,14],["Big Bus",1.1,13],["DoDublin",0.8,12]];
+    const avg=Math.round(data.reduce((a,r)=>a+r[1]*r[2],0)/data.reduce((a,r)=>a+r[2],0)*10)/10;
+    const tlRows=data.map(r=>({ label:r[0].replace(/ \(.*\)/,""), start:0, end:r[1], tone:r[1]>=5?"ink":r[1]<=1.5?"warn":"accent", tag:r[1]+" days" }));
+    return `
+    ${card("How far ahead each channel books", timeline(tlRows,{domain:[0,7],ticks:[{at:1,label:"1 day"},{at:3,label:"3 days"},{at:5,label:"5 days"},{at:7,label:"1 week"}]}), {eyebrow:`On average, guests book ${avg} days before the tour`})}
+    <div class="scaffold-note rise"><span class="badge">${icon("ticket",18)}</span><span>Long bars book early, so you can plan crew and coaches around them. Short bars fill the last seats close to departure.</span></div>`;
   }
 
   /* ----------------------------------------------------- CUSTOMERS pages -- */
@@ -1018,9 +1063,13 @@
     background:radial-gradient(135% 105% at 42% 22%, var(--surface-2), var(--surface));
     border:1px solid var(--hairline)}
   .wr-ireland{display:block;width:100%;height:auto;overflow:visible}
-  .wr-coast{fill:var(--accent-soft)}
-  [data-theme="dark"] .wr-coast{fill:rgba(95,184,155,.09)}
-  .wr-coast-line{fill:none;stroke:var(--accent);stroke-width:1.4;stroke-linejoin:round;opacity:.9}
+  .wr-coast{fill:url(#wrLand)}
+  .wr-land-a{stop-color:color-mix(in srgb,var(--accent) 8%, var(--surface))}
+  .wr-land-b{stop-color:color-mix(in srgb,var(--accent) 17%, var(--surface))}
+  [data-theme="dark"] .wr-land-a{stop-color:rgba(95,184,155,.06)} [data-theme="dark"] .wr-land-b{stop-color:rgba(95,184,155,.13)}
+  .wr-coast-halo{fill:none;stroke:var(--accent);stroke-width:6;opacity:.12;filter:url(#wrSea)}
+  [data-theme="dark"] .wr-coast-halo{opacity:.22}
+  .wr-coast-line{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-linejoin:round;stroke-linecap:round;opacity:.85}
   .wr-lough{fill:var(--bg);stroke:var(--accent);stroke-width:.8;opacity:.85}
   .wr-shannon{fill:none;stroke:var(--bg);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:.95}
   .wr-city circle{fill:var(--ink-3)}
@@ -1245,6 +1294,15 @@
   @media (max-width:880px){ .wr-split{grid-template-columns:1fr} }
   .tone-mute{color:var(--ink-2)}
 
+  /* sidebar wordmark: WR -> Wild Rover, crossfade on rail hover (matches search timing) */
+  .wr-brandmark{position:relative;display:inline-grid;place-items:center;height:24px;font-family:var(--font-serif);color:var(--ink)}
+  .wr-bm-short,.wr-bm-full{grid-area:1/1;white-space:nowrap;transition:opacity var(--dur) var(--ease)}
+  .wr-bm-short{font-size:17px;font-weight:500;letter-spacing:.06em;opacity:1}
+  .wr-bm-full{font-size:15px;font-weight:500;letter-spacing:.02em;opacity:0}
+  .side:hover .wr-bm-short{opacity:0}
+  .side:hover .wr-bm-full{opacity:1;transition:opacity var(--dur) var(--ease) .06s}
+  @media (prefers-reduced-motion:reduce){ .wr-bm-short,.wr-bm-full{transition:none} }
+
   /* controls (filter + sort segments) */
   .wr-controls{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:22px}
   .wr-seg2{display:inline-flex;padding:3px;border-radius:12px;background:var(--surface-2);border:1px solid var(--hairline)}
@@ -1340,6 +1398,7 @@
   .wr-hc-spark{margin-top:8px;height:30px}
   .wr-hc-spark .wr-spark{width:100%;height:30px}
   .wr-seatcell{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  .wr-chan{display:inline-flex;align-items:center;gap:9px}
   @media (max-width:760px){ .wr-hourgrid{grid-template-columns:1fr} }
 
   /* customers: ltv, themes, pipeline */
@@ -1593,7 +1652,10 @@
 
   /* ===================== TOP-BAR OWNER TOGGLE ============================ */
   function mountOwnerToggle(){
-    const inbar = document.querySelector(".topbar-in"); if(!inbar || inbar.querySelector(".wr-owner")) return;
+    const inbar = document.querySelector(".topbar-in"); if(!inbar) return;
+    const existing = inbar.querySelector(".wr-owner");
+    if(currentPage!=="overview"){ if(existing) existing.remove(); return; }   // Home only
+    if(existing) return;
     const t = document.createElement("div");
     t.className = "wr-owner"; t.setAttribute("role","tablist");
     t.innerHTML = `<button data-owner="office" class="${wrOwner?"":"on"}">Office</button><button data-owner="owner" class="${wrOwner?"on":""}">Owner view</button>`;
@@ -1678,10 +1740,12 @@
   const _renderMain = renderMain;
   renderMain = function(){ _renderMain(); wireWR(); };
 
-  // swap the ACMR logo marks for a Wild Rover wordmark (no WR asset exists)
+  // swap the ACMR logo marks for a Wild Rover wordmark (no WR asset exists):
+  // "WR" collapsed, "Wild Rover" on hover, crossfading on the rail's own timing.
   function swapMarks(){
     document.querySelectorAll(".brand-logo").forEach(img=>{ const s=document.createElement("span");
-      s.textContent="WILD ROVER"; s.style.cssText="font-family:var(--font-serif);font-size:14px;letter-spacing:.04em;color:var(--ink);white-space:nowrap";
+      s.className="wr-brandmark";
+      s.innerHTML=`<span class="wr-bm-short">WR</span><span class="wr-bm-full">Wild Rover</span>`;
       img.replaceWith(s); });
   }
 

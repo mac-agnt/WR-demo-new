@@ -5,7 +5,8 @@
       "name": "static",
       "runtimeExecutable": "node",
       "runtimeArgs": ["/Users/macobrien/Downloads/Kimi_Agent_网站改版需求 (1)/WR-demo-new/.claude/static-server.js"],
-      "port": 4173
+      "port": 4173,
+      "autoPort": true
     }
   ]
 }
