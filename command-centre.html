@@ -121,6 +121,13 @@ textarea{font-family:inherit}
 .s-lbl{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
 .side:hover .s-lbl{opacity:1}
 
+/* nav section header: a short hairline when collapsed, an uppercase label when expanded */
+.nav-group{position:relative;display:flex;align-items:center;height:28px;padding:8px 14px 2px;flex:none}
+.nav-group::before{content:"";position:absolute;left:14px;right:14px;top:62%;height:1px;background:var(--hairline);opacity:1;transition:opacity var(--dur-fast) var(--ease)}
+.nav-group .ng-lbl{position:relative;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);white-space:nowrap;opacity:0;transition:opacity var(--dur-fast) var(--ease)}
+.side:hover .nav-group::before{opacity:0}
+.side:hover .nav-group .ng-lbl{opacity:1}
+
 /* brand mark (monochrome) */
 .brand{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:48px;margin-bottom:16px}
 /* scale instead of height — GPU-composited, no layout reflow, no jitter */
@@ -668,22 +675,45 @@ const brand = {
    merged in by wr-demo.js before the sidebar renders, so they resolve fine. */
 const NAV = [
   { id:"overview",   label:"Home",       icon:"home"     },
-  { id:"fleet",      label:"Fleet",      icon:"bus"      },
+  { group:"Fleet" },
+  { id:"vehicles",    label:"Vehicles",    icon:"bus"    },
+  { id:"compliance",  label:"Compliance",  icon:"doc"    },
+  { id:"maintenance", label:"Maintenance", icon:"wrench" },
+  { id:"livemap",     label:"Live Map",    icon:"map"    },
+  { id:"inspections", label:"Inspections", icon:"check"  },
+  { group:"Operations" },
   { id:"operations", label:"Operations", icon:"layers"   },
   { id:"bookings",   label:"Bookings",   icon:"ticket"   },
-  { id:"customers",  label:"Customers",  icon:"users"    },
-  { id:"marketing",  label:"Marketing",  icon:"megaphone"},
+  { group:"Customers" },
+  { id:"directory",  label:"Directory",  icon:"users"    },
+  { id:"reviews",    label:"Reviews",    icon:"star"     },
+  { id:"pipeline",   label:"Pipeline",   icon:"trending" },
+  { id:"campaigns",  label:"Campaigns",  icon:"flag"     },
+  { group:"Growth" },
+  { id:"marketing",   label:"Marketing",   icon:"megaphone"},
+  { id:"website",     label:"Website",     icon:"globe"    },
+  { id:"competitors", label:"Competitors", icon:"target"   },
+  { group:"Finance" },
   { id:"finance",    label:"Finance",    icon:"euro"     },
   { id:"settings",   label:"Settings",   icon:"gear"     },
 ];
 const navItem = id => NAV.find(i => i.id === id);
 
 const SUBTITLES = {
-  fleet:"Vehicles, compliance, maintenance and where every coach is right now.",
+  vehicles:"Every coach in the fleet, with status, mileage and document health.",
+  compliance:"PSV discs, CVRT, insurance and tachograph — every cert and its expiry.",
+  maintenance:"Service schedules, costs and the workshop queue across the fleet.",
+  livemap:"Where every coach is right now, live across the day's routes.",
+  inspections:"Driver walk-around checks, photo-logged and timestamped each morning.",
   operations:"Sydney GPT runs the day: roster, run sheet, manifests and driver hours.",
   bookings:"One true seat count across every channel, pickups and confirmations.",
-  customers:"The whole customer base, reviews, enquiries and campaigns in one place.",
+  directory:"Every guest who has ever travelled, with lifetime value and full history.",
+  reviews:"Every review across TripAdvisor and Google, with sentiment and replies.",
+  pipeline:"Enquiries and group quotes, from first contact to booked.",
+  campaigns:"Win-back, bundle nudges and birthday offers across email and SMS.",
   marketing:"Spend, return, live trends, content and the competition on one screen.",
+  competitors:"Live price positioning and ratings against every rival on each route.",
+  website:"Traffic, conversion and the booking funnel on the site ACMR runs.",
   finance:"Live P&L, margin per departure and the real cost of every channel.",
   settings:"Everything Wild Rover runs on, connected in one place."
 };
@@ -713,7 +743,7 @@ const NOTIFICATIONS = [
   { app:"spark",    appName:"Bookings",             title:"Seat truth updated",     body:"Cliffs of Moher & Galway is 49 of 53 across all channels.",       time:"22m ago", ent:"departure:DEP-CMG" },
   { app:"bell",     appName:"Compliance",           title:"PSV disc expiring",      body:"Bus 9 (06-D-19874) road passenger licence lapses in 19 days.",    time:"1h ago",  ent:"vehicle:V09" },
   { app:"wrench",   appName:"Maintenance",          title:"Service due soon",       body:"Bus 4 is 9,200 km from its next service. Flagged early.",         time:"2h ago",  ent:"vehicle:V04" },
-  { app:"star",     appName:"Customers · Reviews",  title:"New 5-star review",      body:"“Mícheál made the whole day” on TripAdvisor for Galway.", time:"3h ago",  go:"customers" },
+  { app:"star",     appName:"Customers · Reviews",  title:"New 5-star review",      body:"“Mícheál made the whole day” on TripAdvisor for Galway.", time:"3h ago",  go:"reviews" },
   { app:"trending", appName:"Marketing",            title:"Trend spotted",          body:"Wild Atlantic Way reels up 38% on TikTok this week.",             time:"5h ago",  go:"marketing" },
   { app:"clock",    appName:"Driver hours",         title:"Tachograph red-line",    body:"Pádraig Nolan is at 53h40 of the 56h fortnight limit.",           time:"Today",   ent:"driver:D01" },
   { app:"euro",     appName:"Finance",              title:"Low-load departure",     body:"Kilkenny & Glendalough Friday is at 19 of 50, below break-even.", time:"Today",   ent:"departure:DEP-KWG" },
@@ -848,8 +878,9 @@ let currentPage = "overview";
 let homeMsgs = [];     // ChatGPT-style home thread (in-memory; wire to real history)
 
 function renderSidebar(){
-  const items = NAV.map(it=>`
-    <button class="navitem ${it.id===currentPage?"active":""}" data-id="${it.id}">
+  const items = NAV.map(it=> it.group
+    ? `<div class="nav-group"><span class="ng-lbl">${it.group}</span></div>`
+    : `<button class="navitem ${it.id===currentPage?"active":""}" data-id="${it.id}">
       <span class="ind"></span><span class="s-ic">${icon(it.icon,19)}</span><span class="s-lbl">${it.label}</span>
     </button>`).join("");
   side.innerHTML = `

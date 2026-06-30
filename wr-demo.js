@@ -31,6 +31,8 @@
     wrench:'<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2-2 2.6-2.6z"/>',
     map:'<path d="M14.5 4 9 6 3.5 4A1 1 0 0 0 2 5v13a1 1 0 0 0 .7 1L9 21l6-2 5.3 1.8A1 1 0 0 0 22 20V7a1 1 0 0 0-.7-1L15 4"/><path d="M9 6v15"/><path d="M15 4v15"/>',
     clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+    globe:'<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+    target:'<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
     star:'<path d="m12 3 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.6 6.8 19l1-5.8L3.6 9.1l5.8-.8z"/>',
     route:'<circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h6a4 4 0 0 0 0-8H8a4 4 0 0 1 0-8h2"/>',
     gauge:'<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
@@ -196,7 +198,7 @@
     { urg:"red",   sec:"Fleet",        title:"Coach off the road",    detail:"Bus 11 broke down on the M7, recovery booked, 2 swaps needed.", ent:"vehicle:V11" },
     { urg:"amber", sec:"Maintenance",  title:"Service due soon",      detail:"Bus 4 is 9,200 km from its next service.", ent:"vehicle:V04" },
     { urg:"amber", sec:"Compliance",   title:"Insurance renewal",     detail:"Bus 4 motor insurance renews 30 Jul, one month out.", ent:"vehicle:V04" },
-    { urg:"amber", sec:"Reviews",      title:"3-star needs a reply",  detail:"Tom R. on TripAdvisor about the Bunratty lunch stop.", go:"customers" },
+    { urg:"amber", sec:"Reviews",      title:"3-star needs a reply",  detail:"Tom R. on TripAdvisor about the Bunratty lunch stop.", go:"reviews" },
   ];
 
   /* ===================== SHARED KIT (extends the existing components) ====== */
@@ -363,14 +365,7 @@
   }
 
   const SECTIONS = {
-    /* ---------------------------------------------------------- FLEET ----- */
-    fleet:{ tabs:[
-      { id:"vehicles", label:"Vehicles", render:fleetVehicles },
-      { id:"compliance", label:"Compliance", render:fleetCompliance },
-      { id:"maintenance", label:"Maintenance", render:fleetMaintenance },
-      { id:"map", label:"Live Map", render:fleetMap },
-      { id:"inspections", label:"Inspections", render:fleetInspections },
-    ]},
+    /* --------- FLEET split into five top-level modules (see NAV group) ----- */
     /* ----------------------------------------------------- OPERATIONS ----- */
     operations:{ tabs:[
       { id:"roster", label:"Roster", render:opsRoster },
@@ -386,20 +381,12 @@
       { id:"confirm", label:"Confirmations", render:bkConfirm },
       { id:"attribution", label:"Booking Window", render:bkAttribution },
     ]},
-    /* ------------------------------------------------------ CUSTOMERS ----- */
-    customers:{ tabs:[
-      { id:"directory", label:"Directory", render:crmDirectory },
-      { id:"reviews", label:"Reviews", render:crmReviews },
-      { id:"pipeline", label:"Pipeline", render:crmPipeline },
-      { id:"campaigns", label:"Campaigns", render:crmCampaigns },
-    ]},
+    /* ------- CUSTOMERS split into four top-level modules (see NAV group) --- */
     /* ------------------------------------------------------ MARKETING ----- */
     marketing:{ tabs:[
       { id:"roi", label:"Spend & ROI", render:mkRoi },
       { id:"trends", label:"Trend Spotter", render:mkTrends },
       { id:"channels", label:"Channels", render:mkChannels },
-      { id:"website", label:"Website", render:mkWebsite },
-      { id:"competitors", label:"Competitors", render:mkCompetitors },
     ]},
     /* -------------------------------------------------------- FINANCE ----- */
     finance:{ tabs:[
@@ -620,11 +607,25 @@
       ["Bus 9","Pádraig Nolan","06:40","Wiper smear, washer topped","ok"],
     ];
     return `
+    <div class="wr-strip">
+      ${tile({label:"Checked in today",value:"14",raw:14,sub:"of 16 coaches, before roll-out",spark:[12,13,14,13,14,14]})}
+      ${tile({label:"Pass rate",value:"96",suf:"%",raw:96,sub:"30-day rolling",delta:{dir:"up",v:"1pt"},spark:[93,94,94,95,95,96]})}
+      ${tile({label:"Defects open",value:"1",sub:"tyre wear, awaiting call",tone:"danger"})}
+      ${tile({label:"Avg submit time",value:"06:51",sub:"before the 7:00 roll-out"})}
+    </div>
     ${card("This morning's inspections", tableHTML(["Coach","Driver","Time","Result"], subs.map(s=>({cells:[`<b>${s[0]}</b>`, s[1], s[2], chip(s[4], s[3])]}))), {eyebrow:"Driver submissions", foot:`<button class="ghost" data-toast="Review queue cleared">${icon("check",15)} Mark reviewed</button>`})}
-    ${card("Sydney's review queue", `<div class="rows">
-      <div class="row"><span class="row-ava">${icon("alert",16)}</span><div class="row-main"><b>Bus 5 tyre wear</b><span>Flagged by Seán, awaiting Sydney's call on swap</span></div>${chip("warn","Open")}</div>
-      <div class="row"><span class="row-ava">${icon("check",16)}</span><div class="row-main"><b>Bus 9 wiper</b><span>Resolved on the spot</span></div>${chip("ok","Cleared")}</div>
-    </div>`, {eyebrow:"Needs a decision"})}`;
+    <div class="grid grid-2">
+      ${card("Sydney's review queue", `<div class="rows">
+        <div class="row"><span class="row-ava">${icon("alert",16)}</span><div class="row-main"><b>Bus 5 tyre wear</b><span>Flagged by Seán, awaiting Sydney's call on swap</span></div>${chip("warn","Open")}</div>
+        <div class="row"><span class="row-ava">${icon("check",16)}</span><div class="row-main"><b>Bus 9 wiper</b><span>Resolved on the spot</span></div>${chip("ok","Cleared")}</div>
+        <div class="row"><span class="row-ava">${icon("check",16)}</span><div class="row-main"><b>Bus 1 walk-around</b><span>Full pass, no notes</span></div>${chip("ok","Cleared")}</div>
+      </div>`, {eyebrow:"Needs a decision"})}
+      ${card("Walk-around coverage", `<div class="wr-split"><div>${ringStat(14,16,{tone:"accent",center:`<b>88%</b><span>checked in</span>`})}</div><div class="rows" style="width:100%">
+        <div class="row"><span class="row-ava">${icon("check",15)}</span><div class="row-main"><b>13 clean passes</b><span>no defects logged</span></div>${chip("ok","OK")}</div>
+        <div class="row"><span class="row-ava">${icon("alert",15)}</span><div class="row-main"><b>1 defect noted</b><span>Bus 5 near-side rear tyre</span></div>${chip("warn","Watch")}</div>
+        <div class="row"><span class="row-ava">${icon("bus",15)}</span><div class="row-main"><b>2 at depot</b><span>not rostered today</span></div>${chip("neutral","—")}</div>
+      </div></div>`, {eyebrow:"Driver app · photo-logged, timestamped"})}
+    </div>`;
   }
 
   /* ---------------------------------------------------- OPERATIONS pages -- */
@@ -692,14 +693,31 @@
 
   /* ------------------------------------------------------ BOOKINGS pages -- */
   function bkSeats(){
+    const TONES=["accent","ink","warn","mute","danger"];
     const sold=DEPARTURES.reduce((a,d)=>a+d.sold,0);
     const cap=DEPARTURES.reduce((a,d)=>a+d.cap,0);
     const load=Math.round(sold/cap*100);
     const nearFull=DEPARTURES.filter(d=>d.sold/d.cap>=0.95).length;
     const low=DEPARTURES.filter(d=>d.sold/d.cap<0.5).length;
-    const rows = DEPARTURES.map(d=>{ const load=Math.round(d.sold/d.cap*100); const over = d.sold>d.cap;
+    // today's seats by channel — summed straight off the per-departure mix
+    const byChan=CHANNELS.map((c,i)=>({label:c.name.replace(/ \(.*\)/,""),value:DEPARTURES.reduce((a,d)=>a+(d.mix[c.id]||0),0),tone:TONES[i%TONES.length]}));
+    const direct=byChan[0].value;
+    // a thin stacked bar of where one departure's seats came from
+    const mixBar=d=>`<span class="wr-mix">${CHANNELS.map((c,i)=>{const n=d.mix[c.id]||0;return n?`<span class="wr-mix-seg tone-${TONES[i%TONES.length]}" style="flex:${n}" title="${c.name.replace(/ \(.*\)/,'')}: ${n}"></span>`:"";}).join("")}</span>`;
+    const trend14=[121,128,134,131,140,147,143,151,158,154,160,165,161,sold];
+    const tlabels=["","","3 Jun","","","","9 Jun","","","","15 Jun","","","Today"];
+    const rows = DEPARTURES.map(d=>{ const load=Math.round(d.sold/d.cap*100); const over = d.sold>d.cap; const f=depRevenue(d);
       const name = `<b>${ROUTES[d.route].name}</b>` + (d.when?` <span class="muted">${d.when}</span>`:"");
-      return { _ent:`departure:${d.id}`, cells:[ name, `${d.sold} / ${d.cap}`, bar(load, load<50?"bad":load<75?"warn":""), over?chip("bad","Oversell"):load>=98?chip("warn","Near full"):chip("ok","Open") ] }; });
+      return { _ent:`departure:${d.id}`, cells:[ name, `${d.sold} / ${d.cap}`, bar(load, load<50?"bad":load<75?"warn":""), `<b>${eur(f.net)}</b>`, mixBar(d), over?chip("bad","Oversell"):load>=98?chip("warn","Near full"):chip("ok","Open") ] }; });
+    // forward pacing — the next four operating days, sold against cap
+    const FWD=[["THU","26","Cliffs of Moher & Galway",47,53],["THU","26","Belfast & Giant's Causeway",50,53],["FRI","27","Cliffs via Limerick & Bunratty",39,51],["FRI","27","Kilkenny, Wicklow & Glendalough",24,50],["SAT","28","Cliffs of Moher & Galway",53,53],["SAT","28","Belfast & Giant's Causeway",49,53],["SUN","29","Cliffs of Moher & Galway",43,53]];
+    const fwdRows=FWD.map(f=>{ const l=Math.round(f[3]/f[4]*100);
+      return `<div class="row"><span class="wr-fwd-date"><span>${f[0]}</span><b>${f[1]}</b></span><div class="row-main"><b>${f[2]}</b><span>${f[3]} of ${f[4]} seats · ${l}%${f[3]>=f[4]?" · sold out":""}</span></div><span class="wr-seatcell">${bar(l,l<50?"bad":l<75?"warn":"")}</span></div>`; }).join("");
+    const legend=`<div class="wr-legend">${byChan.map(c=>`<span class="tone-${c.tone}"><i></i>${c.label} ${c.value}</span>`).join("")}</div>`;
+    // oversell guard & waitlist — anything 90%+ holds a list rather than turning guests away
+    const wait=[["Belfast & Giant's Causeway","Today",51,53,4],["Cliffs of Moher & Galway","Today",49,53,2],["Cliffs of Moher & Galway","Sat 28",53,53,7]];
+    const waitRows=wait.map(w=>{ const full=w[2]>=w[3];
+      return `<div class="row"><span class="row-ava">${icon("ticket",15)}</span><div class="row-main"><b>${w[0]}</b><span>${w[1]} · ${w[2]}/${w[3]} seats</span></div>${chip(full?"bad":"warn",w[4]+" waitlisted")}</div>`; }).join("");
     return `
     <div class="wr-strip">
       ${tile({label:"Seats sold today",value:String(sold),raw:sold,sub:cap+" seats available",delta:{dir:"up",v:"6%"},spark:[142,151,160,158,165,sold]})}
@@ -707,7 +725,19 @@
       ${tile({label:"Near full",value:String(nearFull),sub:"95%+ sold, hold a waitlist"})}
       ${tile({label:"Low-load",value:String(low),sub:"under break-even",tone:"danger"})}
     </div>
-    ${card("One live seat count per departure", tableHTML([{label:"Departure",sort:true},{label:"Sold / Cap",num:true,sort:true},"Load","Status"], rows), {eyebrow:"Every channel, one number · oversell prevented"})}
+    ${card("Seats sold · last 14 days", areaTrend(trend14,{labels:tlabels,h:182,target:Math.round(cap*0.85),targetLabel:"85% load"}), {eyebrow:"Momentum into the summer peak · one live number"})}
+    <div class="grid grid-2">
+      ${card("Where today's seats came from", `<div class="wr-split"><div>${donut(byChan,{center:`<b>${Math.round(direct/sold*100)}%</b><span>direct</span>`})}</div><div>${donutLegend(byChan)}</div></div>`, {eyebrow:"Every channel writes to the one count"})}
+      ${card("Forward load · next four days", `<div class="rows wr-fwd">${fwdRows}</div>`, {eyebrow:"Pacing ahead, so crew and coaches are planned early", foot:`<button class="ghost" data-toast="Opening the booking-window view">${icon("clock",15)} See booking window</button>`})}
+    </div>
+    ${card("One live seat count per departure", tableHTML([{label:"Departure",sort:true},{label:"Sold / Cap",num:true,sort:true},"Load",{label:"Net revenue",num:true,sort:true},"Channel mix","Status"], rows)+legend, {eyebrow:"Every channel, one number · oversell prevented"})}
+    <div class="grid grid-2">
+      ${card("Oversell guard & waitlist", `<div class="rows">${waitRows}</div>`, {eyebrow:"90%+ sold holds a list · no guest turned away by mistake", foot:`<button class="ghost" data-toast="Waitlist offers sent to 13 guests">${icon("message",15)} Offer next available</button>`})}
+      ${card("Yield watch · low-load", `<div class="rows">
+        <div class="row"><span class="row-ava sev-red">${icon("alert",15)}</span><div class="row-main"><b>Kilkenny, Wicklow & Glendalough · Fri</b><span>19 of 50 · €2,135 under break-even</span></div><button class="ghost" data-toast="Bundle nudge drafted for Friday Kilkenny">${icon("spark",14)} Bundle nudge</button></div>
+        <div class="row"><span class="row-ava">${icon("clock",15)}</span><div class="row-main"><b>Cliffs via Limerick · Fri</b><span>39 of 51 · pacing 8% behind last week</span></div><button class="ghost" data-toast="Win-back email queued to lapsed guests">${icon("megaphone",14)} Email lapsed</button></div>
+      </div>`, {eyebrow:"Soft departures flagged early · while there's still time to fill them"})}
+    </div>
     <div class="scaffold-note rise"><span class="badge">${icon("ticket",18)}</span><span>Rezgo, Viator, Bresno, Big Bus and DoDublin all write to the same seat count. The number you see is the number that exists.</span></div>`;
   }
   function bkChannels(){
@@ -732,14 +762,42 @@
     ${card("Every channel in one view", tableHTML([{label:"Channel",sort:true},{label:"Commission",num:true,sort:true},{label:"Share of bookings",num:true,sort:true}], rows), {eyebrow:"Direct vs OTA at a glance"})}`;
   }
   function bkPickups(){
-    return `<div class="grid grid-2">${Object.entries(ROUTES).map(([id,r])=>card(r.name, `<div class="rows">${r.pickups.map(p=>`<div class="row"><span class="row-ava">${icon("pin",15)}</span><div class="row-main"><b>${p.split(" ")[0]}</b><span>${p.split(" ").slice(1).join(" ")}</span></div></div>`).join("")}</div>`, {eyebrow:"Morning pickups"})).join("")}</div>`;
+    // every pickup point across all routes, with guests boarding there today
+    const vol=[["Gardiner Street",58,"accent"],["O'Connell Street",47,"ink"],["Heuston",31,"ink"],["Westmoreland Street",18,"mute"],["Red Cow",15,"mute"]];
+    const volBars=hbars(vol.map(v=>({label:v[0],value:v[1],tone:v[2]})),{fmt:v=>v+" pax"});
+    const routeCards=Object.entries(ROUTES).map(([id,r])=>card(r.name, `<div class="rows">${r.pickups.map(p=>{const t=p.split(" ")[0];return `<div class="row"><span class="row-ava">${icon("pin",15)}</span><div class="row-main"><b>${p.split(" ").slice(1).join(" ")}</b><span>Pickup ${t}</span></div><span class="muted" style="font-variant-numeric:tabular-nums;font-size:12.5px">${t}</span></div>`;}).join("")}</div>`, {eyebrow:`Morning pickups · ${r.hrs} round trip`})).join("");
+    return `
+    <div class="wr-strip">
+      ${tile({label:"Pickup points",value:"5",sub:"across all four routes"})}
+      ${tile({label:"On-time rate",value:"97",suf:"%",raw:97,sub:"coach at the stop on schedule",delta:{dir:"up",v:"2pt"},spark:[93,94,95,95,96,97]})}
+      ${tile({label:"No-shows today",value:"3",sub:"of 169 booked",tone:"danger"})}
+      ${tile({label:"Guests boarding",value:"169",raw:169,sub:"first pickup 6:45",delta:{dir:"up",v:"6%"},spark:[150,156,160,158,165,169]})}
+    </div>
+    ${card("Busiest pickup points today", volBars, {eyebrow:"Where the crowd boards · plan the early stops first", foot:`<button class="ghost" data-toast="Pickup sheet printed for all five points">${icon("print",15)} Print pickup sheet</button>`})}
+    <div class="grid grid-2">${routeCards}</div>
+    <div class="scaffold-note rise"><span class="badge">${icon("pin",18)}</span><span>Each guest gets their exact pickup point and time on the booking confirmation, so the office phone stops ringing the night before.</span></div>`;
   }
   function bkConfirm(){
+    const fn=[{label:"Booked",value:169},{label:"Confirmation delivered",value:167},{label:"Reminder opened",value:148},{label:"Boarded",value:166}];
     return `
-    ${card("Confirmation automation", `<div class="rows">
-      <div class="row"><span class="row-ava">${icon("check",16)}</span><div class="row-main"><b>Instant confirmation</b><span>Sent on every booking, all channels, with pickup point and time</span></div>${chip("ok","On")}</div>
-      <div class="row"><span class="row-ava">${icon("doc",16)}</span><div class="row-main"><b>Day-before reminder</b><span>Pickup, weather and what to bring, 18:00 the evening prior</span></div>${chip("ok","On")}</div>
-    </div>`, {eyebrow:"No manual emails"})}
+    <div class="wr-strip">
+      ${tile({label:"Confirmations sent today",value:"169",raw:169,sub:"every channel, instant",delta:{dir:"up",v:"6%"},spark:[150,156,160,158,165,169]})}
+      ${tile({label:"Delivery rate",value:"98.8",suf:"%",raw:98.8,dec:1,sub:"email + SMS",spark:[97.9,98.1,98.4,98.5,98.6,98.8]})}
+      ${tile({label:"Reminders queued",value:"212",raw:212,sub:"go out 18:00 tonight"})}
+      ${tile({label:"Avg send time",value:"2.1s",sub:"after booking lands"})}
+    </div>
+    <div class="grid grid-2">
+      ${card("Confirmation automation", `<div class="rows">
+        <div class="row"><span class="row-ava">${icon("check",16)}</span><div class="row-main"><b>Instant confirmation</b><span>Sent on every booking, all channels, with pickup point and time</span></div>${chip("ok","On")}</div>
+        <div class="row"><span class="row-ava">${icon("doc",16)}</span><div class="row-main"><b>Day-before reminder</b><span>Pickup, weather and what to bring, 18:00 the evening prior</span></div>${chip("ok","On")}</div>
+        <div class="row"><span class="row-ava">${icon("message",16)}</span><div class="row-main"><b>SMS pickup nudge</b><span>Text 60 minutes before the stop with the live coach ETA</span></div>${chip("ok","On")}</div>
+        <div class="row"><span class="row-ava">${icon("star",16)}</span><div class="row-main"><b>Post-tour review request</b><span>Three hours after drop-off, while the day is still fresh</span></div>${chip("ok","On")}</div>
+      </div>`, {eyebrow:"No manual emails · four flows, fully automatic"})}
+      ${card("Booking to boarding", funnel(fn), {eyebrow:"Confirmation delivered · reminder opened · showed up"})}
+    </div>
+    ${card("Today's send log", `<div class="rows">
+      ${[["09:41","Confirmation","Hannah Whitaker · Cliffs & Galway","Delivered"],["09:38","SMS nudge","Petersen party (5) · Belfast","Delivered"],["09:30","Reminder","42 guests · tomorrow's departures","Queued"],["09:12","Review request","Greta Hoffmann · yesterday's Kilkenny","Opened"]].map(s=>`<div class="row"><span class="row-ava">${icon("inbox",15)}</span><div class="row-main"><b>${s[1]} · ${s[2]}</b><span>${s[0]}</span></div>${chip(s[3]==="Queued"?"warn":"ok",s[3])}</div>`).join("")}
+    </div>`, {eyebrow:"Every message, logged · nothing sent by hand"})}
     ${card("Self-serve flexible return seat", `<p class="brief-p">Guests who want a different coach back pick their return online, the seat count updates live, and the office phone stops ringing at noon. The single change Wild Rover asked for, built in.</p>
       <div class="b-actions"><button class="ghost" data-toast="Return-seat link copied">Copy guest link</button></div>`, {eyebrow:"Kills the noon phone call"})}`;
   }
@@ -747,8 +805,21 @@
     const data=[["Direct (Rezgo)",2.3,34],["Viator",6.1,27],["Bresno",5.4,14],["Big Bus",1.1,13],["DoDublin",0.8,12]];
     const avg=Math.round(data.reduce((a,r)=>a+r[1]*r[2],0)/data.reduce((a,r)=>a+r[2],0)*10)/10;
     const tlRows=data.map(r=>({ label:r[0].replace(/ \(.*\)/,""), start:0, end:r[1], tone:r[1]>=5?"ink":r[1]<=1.5?"warn":"accent", tag:r[1]+" days" }));
+    // when bookings actually land — by lead time and by day of the week
+    const lead=[{label:"Same day",value:18,tone:"warn"},{label:"1–2 days",value:26,tone:"accent"},{label:"3–6 days",value:31,tone:"accent"},{label:"1–2 weeks",value:17,tone:"ink"},{label:"3 weeks +",value:8,tone:"mute"}];
+    const dow=[{label:"Mon",value:11,tone:"ink"},{label:"Tue",value:12,tone:"ink"},{label:"Wed",value:14,tone:"ink"},{label:"Thu",value:16,tone:"accent"},{label:"Fri",value:13,tone:"ink"},{label:"Sat",value:19,tone:"accent"},{label:"Sun",value:15,tone:"ink"}];
     return `
+    <div class="wr-strip">
+      ${tile({label:"Avg lead time",value:String(avg),suf:" days",raw:avg,dec:1,sub:"before the tour runs",delta:{dir:"up",v:"0.3"},spark:[3.1,3.2,3.0,3.3,3.4,avg]})}
+      ${tile({label:"Same-day bookings",value:"18",suf:"%",raw:18,sub:"last seats, close to departure"})}
+      ${tile({label:"Booked a week +",value:"25",suf:"%",raw:25,sub:"plan crew around these"})}
+      ${tile({label:"Peak booking day",value:"Sat",sub:"19% of the week's volume"})}
+    </div>
     ${card("How far ahead each channel books", timeline(tlRows,{domain:[0,7],ticks:[{at:1,label:"1 day"},{at:3,label:"3 days"},{at:5,label:"5 days"},{at:7,label:"1 week"}]}), {eyebrow:`On average, guests book ${avg} days before the tour`})}
+    <div class="grid grid-2">
+      ${card("When the booking lands", hbars(lead,{fmt:v=>v+"%"}), {eyebrow:"Share of bookings by lead time"})}
+      ${card("Bookings by day of week", hbars(dow,{fmt:v=>v+"%"}), {eyebrow:"When guests actually book"})}
+    </div>
     <div class="scaffold-note rise"><span class="badge">${icon("ticket",18)}</span><span>Long bars book early, so you can plan crew and coaches around them. Short bars fill the last seats close to departure.</span></div>`;
   }
 
@@ -962,8 +1033,15 @@
   function finMargin(){
     const segs=CHANNELS.map(c=>({label:c.name.split(" ")[0],value:c.share,tone:c.comm===0?'accent':c.comm>=28?'danger':c.comm>=22?'warn':'mute'}));
     const direct=CHANNELS.find(c=>c.comm===0).share, ota=100-direct;
+    const blended=Math.round(CHANNELS.reduce((a,c)=>a+c.share*c.comm,0)/CHANNELS.reduce((a,c)=>a+c.share,0)*10)/10;
     const rows=CHANNELS.map(c=>({ cells:[`<b>${c.name}</b>`, c.comm+"%", c.share+"%", c.comm===0?chip("ok","Full margin"):c.comm>=25?chip("bad","Thin"):chip("warn","OK")] }));
     return `
+    <div class="wr-strip">
+      ${tile({label:"Direct share",value:String(direct),suf:"%",raw:direct,sub:"commission-free",delta:{dir:"up",v:"2pt"},spark:[28,30,31,32,33,direct]})}
+      ${tile({label:"Blended commission",value:String(blended),suf:"%",raw:blended,dec:1,sub:"weighted across channels"})}
+      ${tile({label:"Commission this month",value:"41.2",pre:"€",suf:"k",raw:41.2,dec:1,sub:"paid to OTAs",tone:"danger"})}
+      ${tile({label:"Win at +10pt direct",value:"4.1",pre:"€",suf:"k",raw:4.1,dec:1,sub:"margin recovered / month",delta:{dir:"up",v:"goal"}})}
+    </div>
     ${card("Direct vs OTA mix", `<div class="wr-split"><div>${donut(segs,{center:`<b>${ota}%</b><span>via OTA</span>`})}</div><div>${donutLegend(segs)}</div></div>`, {eyebrow:`${direct}% direct · ${ota}% carries 20 to 30% commission`})}
     ${card("By channel", tableHTML([{label:"Channel",sort:true},{label:"Commission",num:true,sort:true},{label:"Share",num:true,sort:true},"Margin"], rows), {eyebrow:"Each channel's cut"})}
     ${card("The mix problem", `<p class="brief-p">66% of bookings carry a commission of 20 to 30%. Each point of share moved from Viator and Bresno to direct is pure margin, which is what the website redesign and campaigns are built to do.</p>`, {eyebrow:"The opportunity"})}`;
@@ -991,7 +1069,20 @@
   }
 
   /* register pages */
-  ["fleet","operations","bookings","customers","marketing","finance"].forEach(sec=>{ PAGES[sec] = () => renderSection(sec); });
+  ["operations","bookings","marketing","finance"].forEach(sec=>{ PAGES[sec] = () => renderSection(sec); });
+  // Fleet split into five top-level modules under the "Fleet" nav group
+  PAGES["vehicles"]    = fleetVehicles;
+  PAGES["compliance"]  = fleetCompliance;
+  PAGES["maintenance"] = fleetMaintenance;
+  PAGES["livemap"]     = fleetMap;
+  PAGES["inspections"] = fleetInspections;
+  PAGES["website"] = mkWebsite;       // promoted out of Marketing into its own top-level module
+  PAGES["competitors"] = mkCompetitors;  // promoted out of Marketing
+  // Customers split into four top-level modules under the "Customers" nav group
+  PAGES["directory"] = crmDirectory;
+  PAGES["reviews"]   = crmReviews;
+  PAGES["pipeline"]  = crmPipeline;
+  PAGES["campaigns"] = crmCampaigns;
   PAGES["settings"] = settingsPage;
   function settingsPage(){
     const G = (typeof GOOGLE!=="undefined")?GOOGLE:{};
@@ -1427,6 +1518,26 @@
   .wf-key{display:flex;gap:18px;margin-top:14px;font-size:12.5px;color:var(--ink-2)}
   .wf-key span{display:inline-flex;align-items:center;gap:7px}
   .wf-sw{width:11px;height:11px;border-radius:3px} .wf-sw.cost{background:var(--ink-3)} .wf-sw.keep{background:var(--accent)}
+
+  /* enriched bookings: seat-mix bar, forward load, mini metric row */
+  .wr-mix{display:inline-flex;width:108px;height:8px;border-radius:99px;overflow:hidden;background:var(--surface-2);border:1px solid var(--hairline);vertical-align:middle}
+  .wr-mix-seg{height:100%;background:currentColor}
+  .wr-fwd .row .wr-fwd-date{width:52px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:6px 0;border-radius:9px;background:var(--surface-2);border:1px solid var(--hairline)}
+  .wr-fwd-date b{font-size:13px;font-weight:600;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+  .wr-fwd-date span{font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-3)}
+  .wr-fwd .row .wr-seatcell{font-variant-numeric:tabular-nums;font-size:12.5px;color:var(--ink-2);justify-content:flex-end;min-width:120px}
+  .wr-legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin-top:14px;font-size:12px;color:var(--ink-2)}
+  .wr-legend span{display:inline-flex;align-items:center;gap:7px}
+  .wr-legend i{width:9px;height:9px;border-radius:3px;background:currentColor;flex:none}
+
+  /* home dashboard: ACMR-style dense grid that spans the full page below the assistant hero */
+  .wr-home-extra{max-width:var(--page-max)}
+  .grid-3{grid-template-columns:repeat(3,1fr)}
+  @media (max-width:1024px){ .grid-3{grid-template-columns:1fr 1fr} }
+  @media (max-width:760px){ .grid-3{grid-template-columns:1fr} }
+  .wr-home-cap{font-size:12px;color:var(--ink-3);margin:-4px 2px -2px}
+  .wr-cardnum{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+  .wr-bignum{font-size:1.7rem;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
   `;
   document.head.appendChild(css);
 
@@ -1465,7 +1576,7 @@
           ${kv("Fuel (year)","€21,900")}${kv("Service & parts","€9,180")}${kv("Tyres","€4,300")}${kv("Breakdowns",v.id==="V07"?"€3,040":"€0")}</div>
         <div class="wr-ent-sec"><span class="eyebrow">Connected</span><div class="wr-links">
           ${onTour?jumpEnt("Today's departure","departure",onTour.id,"route"):""}
-          ${jump("Maintenance","fleet","","wrench")}${jump("Compliance","fleet","","doc")}</div></div>` };
+          ${jump("Maintenance","maintenance",null,"wrench")}${jump("Compliance","compliance",null,"doc")}</div></div>` };
     },
     driver(id){ const p=per(id); if(!p) return null; const pct=Math.round(p.hrs/HR_LIMIT*100);
       const onTour = DEPARTURES.find(d=>d.driver===id||d.guide===id);
@@ -1505,7 +1616,7 @@
         <div class="wr-ent-sec"><span class="eyebrow">Reputation & reach</span>
           ${kv("TripAdvisor","★ "+c.rating+" · "+c.reviews.toLocaleString("en-IE")+" reviews")}${kv("Social following",c.social+"k")}${kv("Departures",c.freq)}</div>
         <div class="wr-ent-sec"><span class="eyebrow">Positioning</span><p class="brief-p">${c.usp}.</p></div>
-        <div class="wr-ent-sec"><span class="eyebrow">Connected</span><div class="wr-links">${jump("Competitor watch","marketing","competitors","megaphone")}${jump("Channel margin","finance","margin","euro")}</div></div>` };
+        <div class="wr-ent-sec"><span class="eyebrow">Connected</span><div class="wr-links">${jump("Competitor watch","competitors",null,"megaphone")}${jump("Channel margin","finance","margin","euro")}</div></div>` };
     },
     customer(id){ const c=cust(id); if(!c) return null;
       return { head:`<div><div class="eyebrow">${c.region} · ${c.type} · via ${c.src}</div><h2>${c.name}</h2></div>`,
@@ -1514,7 +1625,7 @@
           ${kv("Trips taken",c.trips)}${kv("Lifetime value",eur(c.ltv))}${kv("First source",c.src)}${kv("Segment",c.type)}</div>
         <div class="wr-ent-sec"><span class="eyebrow">Booking history</span>
           ${kv("Cliffs of Moher & Galway","Jun 2026")}${c.trips>1?kv("Belfast & Giant's Causeway","Sep 2025"):""}${c.trips>3?kv("Kilkenny & Glendalough","May 2024"):""}</div>
-        <div class="wr-ent-sec"><span class="eyebrow">Connected</span><div class="wr-links">${jump("Reviews","customers","reviews","star")}${jump("Campaigns","customers","campaigns","megaphone")}</div></div>` };
+        <div class="wr-ent-sec"><span class="eyebrow">Connected</span><div class="wr-links">${jump("Reviews","reviews",null,"star")}${jump("Campaigns","campaigns",null,"megaphone")}</div></div>` };
     },
   };
 
@@ -1592,7 +1703,7 @@
     const reds = ALERTS.filter(a=>a.urg==="red").slice(0,3);
     const out=VEHICLES.filter(v=>v.status==="out").length, sold=DEPARTURES.reduce((a,d)=>a+d.sold,0);
     const strip = `<div class="wr-strip">
-      ${tile({label:"Coaches out",value:String(out),raw:out,sub:"of 16",go:"fleet",spark:[6,7,8,7,8,8]})}
+      ${tile({label:"Coaches out",value:String(out),raw:out,sub:"of 16",go:"vehicles",spark:[6,7,8,7,8,8]})}
       ${tile({label:"Seats sold today",value:String(sold),raw:sold,sub:DEPARTURES.length+" departures",go:"bookings",delta:{dir:"up",v:"6%"},spark:[142,151,160,158,165,sold]})}
       ${tile({label:"Revenue today",value:"28,910",pre:"€",raw:28910,sub:"pacing on last Wed",go:"finance",delta:{dir:"up",v:"6%"},spark:[24100,25800,26400,27100,28200,28910]})}
       ${tile({label:"Open alerts",value:String(ALERTS.length),raw:ALERTS.length,sub:reds.length+" need you now",go:"__alerts",delta:{dir:"down",v:"2"}})}
@@ -1603,7 +1714,28 @@
         <span class="row-ava sev-red">${icon("alert",15)}</span>
         <div class="row-main wr-row" ${a.ent?`data-ent="${a.ent}"`:a.go?`data-go="${a.go}"`:''}><b>${a.title}</b><span>${a.detail}</span></div>
         <div class="wr-needact">${chip("bad",a.sec)}<button class="ghost wr-resolve" data-toast="Marked '${a.title}' as handled">${icon("check",13)} Resolve</button></div></div>`).join("")}</div>`, {eyebrow:"Sydney's queue · "+reds.length+" red-lines"});
-    const extra = `<div class="wr-home-extra">${strip}${needs}</div>`;
+    // ACMR-style dashboard grid below the hero: revenue trend, channel mix, today's run, route load
+    const TONES=["accent","ink","warn","mute","danger"];
+    const byChan=CHANNELS.map((c,i)=>({label:c.name.replace(/ \(.*\)/,""),value:DEPARTURES.reduce((a,d)=>a+(d.mix[c.id]||0),0),tone:TONES[i%TONES.length]}));
+    const chanTotal=byChan.reduce((a,s)=>a+s.value,0)||1, direct=byChan[0].value;
+    const rev7=[22480,24100,25240,26400,27100,28200,28910], rev7lab=["Thu","Fri","Sat","Sun","Mon","Tue","Today"];
+    const weekRev=rev7.reduce((a,v)=>a+v,0);
+    const revCard=card("Revenue · last 7 days", `
+      <div class="wr-cardnum"><span class="wr-bignum wr-num" data-count="${weekRev}" data-pre="€">${eur(weekRev)}</span><span class="wr-delta up">▲ 6%</span></div>
+      ${areaTrend(rev7,{labels:rev7lab,h:150})}`, {eyebrow:"Takings across every channel"});
+    const chanCard=card("Where today's seats came from", `${donut(byChan,{center:`<b>${Math.round(direct/chanTotal*100)}%</b><span>direct</span>`})}${donutLegend(byChan)}`, {eyebrow:"Every channel writes to one count"});
+    const runRows=DEPARTURES.map(d=>{ const load=Math.round(d.sold/d.cap*100), r=ROUTES[d.route];
+      return `<div class="row wr-row" data-ent="departure:${d.id}"><span class="row-ava">${icon("bus",15)}</span><div class="row-main"><b>${r.name}</b><span>${d.sold}/${d.cap} seats · ${load}%${d.when?" · "+d.when:""}</span></div>${statusChip(d.status)}</div>`; }).join("");
+    const runCard=card("Today's run", `<div class="rows">${runRows}</div>`, {eyebrow:DEPARTURES.length+" departures · live status", foot:`<button class="ghost" data-go="operations">${icon("layers",14)} Run sheet</button>`});
+    const RSHORT={R1:"Cliffs & Galway",R2:"Cliffs via Limerick",R3:"Belfast & Causeway",R4:"Kilkenny & Wicklow"};
+    const byRoute=Object.keys(ROUTES).map(id=>({label:RSHORT[id]||ROUTES[id].name,value:DEPARTURES.filter(d=>d.route===id).reduce((a,d)=>a+d.sold,0),tone:"accent"})).filter(x=>x.value>0).sort((a,b)=>b.value-a.value);
+    const routeCard=card("Seats by route today", hbars(byRoute,{fmt:v=>v+" seats"}), {eyebrow:"Where today's guests are headed"});
+    const extra = `<div class="wr-home-extra">
+      ${strip}
+      <div class="wr-home-cap">Live across every channel · today so far</div>
+      <div class="grid grid-3">${revCard}${chanCard}${runCard}</div>
+      <div class="grid grid-2">${needs}${routeCard}</div>
+    </div>`;
     // place chips right after the composer bar, extras before the notes feed
     html = html.replace('<div class="notes-wrap"', chips + extra + '<div class="notes-wrap"');
     return html;
@@ -1753,5 +1885,15 @@
   renderSidebar();
   swapMarks();
   document.addEventListener("keydown", e=>{ if(e.key==="Escape"){ closeEnt(); closeAlerts(); } });
+
+  // deep-linking: #section or #section/tab lets a demo be bookmarked / shared on a specific module
+  function applyHash(){
+    const h = location.hash.replace(/^#/,""); if(!h) return;
+    const [sec,tab] = h.split("/");
+    if(navItem(sec)){ if(tab) wrTab[sec]=tab; setPage(sec); }
+  }
+  window.addEventListener("hashchange", applyHash);
+
   renderMain();
+  applyHash();
 })();
